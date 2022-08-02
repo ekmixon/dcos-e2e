@@ -36,16 +36,18 @@ def ls(option="all", longform=False):
     if longform:
         cmd.append("--long")
 
-    if not option in constants.lsopts and not option == "all":
-        raise UnknownOptionError("list", option)
+    if option in constants.lsopts or option == "all":
+        return (
+            {
+                opt: subprocess.check_output(cmd + [opt])
+                for opt in constants.lsopts
+            }
+            if option == "all"
+            else subprocess.check_output(cmd + [option])
+        )
 
-    if option == "all":
-        result = {}
-        for opt in constants.lsopts:
-            result[opt] = subprocess.check_output(cmd + [opt])
-        return result
     else:
-        return subprocess.check_output(cmd + [option])
+        raise UnknownOptionError("list", option)
 
 # Public: Create a new virtual with the given options.
 #
@@ -97,15 +99,15 @@ def registervm(self, filename):
 # Raises NoMediumError if the device type is invalid, CommandError if there's
 #        some other error
 def closemedium(self, device, target, delete=False):
-        if not device in constants.closemediumopts:
-            raise NoMediumError(device, target, delete)
+    if device not in constants.closemediumopts:
+        raise NoMediumError(device, target, delete)
 
-        args = [constants.cmd, "closemedium", target]
-        if delete:
-            args.append("--delete")
+    args = [constants.cmd, "closemedium", target]
+    if delete:
+        args.append("--delete")
 
-        execute(args)
-        return True
+    execute(args)
+    return True
 
 
 # Public: Class that wraps a Virtualbox VM and lets you interact with it and
@@ -122,14 +124,10 @@ class VM(object):
     # Returns a VM object wrapping the VirtualBox VM
     # Raises UnknownVMError if VM corresponding to the name or UUID is not found
     def __init__(self, name=None, uuid=None):
-        if name == None and uuid == None:
+        if name is None and uuid is None:
             raise UnknownVMError(name, uuid)
 
-        if not name:
-            argid = uuid
-        else:
-            argid = name
-
+        argid = name or uuid
         try:
             args = [constants.cmd, "showvminfo", "--machinereadable", argid]
             self.vminfo = subprocess.check_output(args)
@@ -160,11 +158,7 @@ class VM(object):
         longkey = None
         longval = None
 
-        if machine:
-            sep = "="
-        else:
-            sep = ":"
-
+        sep = "=" if machine else ":"
         for line in rawinfo.splitlines():
             line = line.decode()
             parts = line.split(sep)
@@ -270,27 +264,27 @@ class VM(object):
             args = [constants.cmd, "modifyvm", self.name]
 
         if option in constants.modboolopts:
-            if optargs[0] == True or optargs[0] == "on":
+            if optargs[0] in [True, "on"]:
                 args += ["on"]
             elif optargs[1] == False or optargs[0] == "off":
                 args += ["off"]
             else:
-                raise UnknownOptionError("modifyvm " + option, optargs[0])
+                raise UnknownOptionError(f"modifyvm {option}", optargs[0])
 
         elif option in constants.modindexopts:
             try:
                 index = int(optargs[0])
             except ValueError:
-                raise UnknownOptionError("modifyvm " + option, optargs[0])
-            args += ["--" + option + str(index)] + optargs[1:]
+                raise UnknownOptionError(f"modifyvm {option}", optargs[0])
+            args += [f"--{option}{index}"] + optargs[1:]
 
         elif option in constants.modenumopts.keys():
             if not optargs[0] in constants.modenumopts[option]:
-                raise UnknownOptionError("modifyvm " + option, optargs[0])
+                raise UnknownOptionError(f"modifyvm {option}", optargs[0])
             else:
-                args += ["--" + option, optargs[0]]
+                args += [f"--{option}", optargs[0]]
         else:
-            args += ["--" + option] + optargs
+            args += [f"--{option}"] + optargs
 
         try:
             args = map(str, args)
@@ -312,31 +306,26 @@ class VM(object):
     def controlvm(self,option=None,*optargs):
 
         optargs = list(optargs)
-        if not option in constants.ctrlopts:
+        if option not in constants.ctrlopts:
             raise UnknownOptionError("controlvm", option)
         else:
             args = [constants.cmd, "controlvm", self.name]
 
         if option in constants.ctrlboolopts:
-            if optargs[0] == True or optargs[0] == "on":
+            if optargs[0] in [True, "on"]:
                 args += ["on"]
             elif optargs[1] == False or optargs[0] == "off":
                 args += ["off"]
             else:
-                raise UnknownOptionError("modifyvm " + option, optargs[0])
+                raise UnknownOptionError(f"modifyvm {option}", optargs[0])
 
         elif option in constants.ctrlindexopts:
             try:
                 index = int(optargs[0])
             except ValueError:
-                raise UnknownOptionError("modifyvm " + option, optargs[0])
-            args += ["--" + option + str(index)] + optargs[1:]
+                raise UnknownOptionError(f"modifyvm {option}", optargs[0])
+            args += [f"--{option}{index}"] + optargs[1:]
 
-        # elif option in constants.ctrlenumopts.keys():
-        #     if not optargs[0] in constants.ctrlenumopts[option]:
-        #         raise UnknownOptionError("modifyvm " + option, optargs[0])
-        #     else:
-        #         args += ["--" + option, optargs[0]]
         else:
             args += [option] + optargs
 
@@ -364,7 +353,7 @@ class VM(object):
         if os.path.isfile(filepath):
             args = [constants.cmd, "adopstate", self.UUID, filepath]
         else:
-            raise IOError("No such state file: " + filepath)
+            raise IOError(f"No such state file: {filepath}")
 
         execute(args)
         return True
@@ -377,16 +366,13 @@ class VM(object):
         return value
 
     def __setattr__(self, name, value):
-        m = re.match('([a-zA-Z]+)([0-9])', name)
-        if m:
-            name = m.group(1)
+        if m := re.match('([a-zA-Z]+)([0-9])', name):
+            name = m[1]
             value = [value]
-            value.insert(0,m.group(2))
+            value.insert(0, m[2])
         if name in constants.modopts and not self.started:
             self.modifyvm(name, *value)
         elif name in constants.ctrlopts and self.started:
                 self.controlvm(name, *value)
-        else:
-            pass
         self.__dict__[name] = value
 

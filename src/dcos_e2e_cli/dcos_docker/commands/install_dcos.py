@@ -81,7 +81,7 @@ def install_dcos(
     doctor_message = get_doctor_message(
         doctor_command_name=doctor_command_name,
     )
-    http_checks = bool(transport == Transport.SSH)
+    http_checks = transport == Transport.SSH
     wait_command_name = command_path(sibling_ctx=ctx, command=wait)
 
     cluster_backend = Docker()

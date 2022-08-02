@@ -43,38 +43,37 @@ def get_install_variant(
     Raises:
         CalledProcessError: There was an error unpacking the installer.
     """
-    if given_variant == 'auto':
-        assert installer_path is not None
-        spinner = Halo(enabled=enable_spinner)
-        spinner.start(text='Determining DC/OS variant')
-        try:
-            details = installer_tools.get_dcos_installer_details(
-                installer=installer_path,
-                workspace_dir=workspace_dir,
-            )
-        except subprocess.CalledProcessError as exc:
-            rmtree(path=str(workspace_dir), ignore_errors=True)
-            spinner.stop()
-            click.echo(doctor_message)
-            click.echo()
-            click.echo('Original error:', err=True)
-            click.echo(exc.stderr, err=True)
-            raise
-        except ValueError as exc:
-            click.echo(str(exc), err=True)
-            sys.exit(1)
+    if given_variant != 'auto':
+        return {
+            'oss': DCOSVariant.OSS,
+            'enterprise': DCOSVariant.ENTERPRISE,
+        }[given_variant]
+    assert installer_path is not None
+    spinner = Halo(enabled=enable_spinner)
+    spinner.start(text='Determining DC/OS variant')
+    try:
+        details = installer_tools.get_dcos_installer_details(
+            installer=installer_path,
+            workspace_dir=workspace_dir,
+        )
+    except subprocess.CalledProcessError as exc:
+        rmtree(path=str(workspace_dir), ignore_errors=True)
+        spinner.stop()
+        click.echo(doctor_message)
+        click.echo()
+        click.echo('Original error:', err=True)
+        click.echo(exc.stderr, err=True)
+        raise
+    except ValueError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
 
-        spinner.succeed()
-        variant_map = {
-            installer_tools.DCOSVariant.ENTERPRISE: DCOSVariant.ENTERPRISE,
-            installer_tools.DCOSVariant.OSS: DCOSVariant.OSS,
-        }
-        return variant_map[details.variant]
-
-    return {
-        'oss': DCOSVariant.OSS,
-        'enterprise': DCOSVariant.ENTERPRISE,
-    }[given_variant]
+    spinner.succeed()
+    variant_map = {
+        installer_tools.DCOSVariant.ENTERPRISE: DCOSVariant.ENTERPRISE,
+        installer_tools.DCOSVariant.OSS: DCOSVariant.OSS,
+    }
+    return variant_map[details.variant]
 
 
 def get_cluster_variant(cluster: Cluster) -> Optional[DCOSVariant]:

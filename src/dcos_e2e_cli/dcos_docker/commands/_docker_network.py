@@ -19,9 +19,6 @@ def _validate_docker_network(
     """
     Validate that a given network name is an existing Docker network name.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
     client = docker_client()
     try:
         return client.networks.get(network_id=value)
@@ -53,5 +50,4 @@ def docker_network_option(command: Callable[..., None]) -> Callable[..., None]:
         ),
         callback=_validate_docker_network,
     )  # type: Callable[[Callable[..., None]], Callable[..., None]]
-    function = click_option_function(command)  # type: Callable[..., None]
-    return function
+    return click_option_function(command)

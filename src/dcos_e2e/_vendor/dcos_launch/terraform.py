@@ -25,19 +25,16 @@ IP_LIST_REGEX = '\[[^\]]+\]'
 def _get_ips(prefix: str, info: str) -> list:
     ips = []
     prefix += ' = '
-    m = re.search('{}{}'.format(prefix, IP_REGEX), info)
-    if m:
-        ips = [m.group(0)[len(prefix):]]
-    else:
-        m = re.search('{}{}'.format(prefix, IP_LIST_REGEX), info)
-        if m:
+    if m := re.search(f'{prefix}{IP_REGEX}', info):
+        ips = [m[0][len(prefix):]]
+    elif m := re.search(f'{prefix}{IP_LIST_REGEX}', info):
             # remove prefix
-            s = m.group(0)[len(prefix):]
-            # remove whitespace
-            s = "".join(s.split())
-            # remove brackets
-            s = s[1:-1]
-            ips = s.split(',')
+        s = m[0][len(prefix):]
+        # remove whitespace
+        s = "".join(s.split())
+        # remove brackets
+        s = s[1:-1]
+        ips = s.split(',')
     return ips
 
 
@@ -106,19 +103,19 @@ class TerraformLauncher(util.AbstractLauncher):
 
             repo = 'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos'
             version = self.config['terraform_dcos_enterprise_version'] if self.config['dcos-enterprise'] else \
-                self.config['terraform_dcos_version']
-            module = 'github.com/dcos/{}?ref={}/{}'.format(repo, version, self.config['platform'])
+                    self.config['terraform_dcos_version']
+            module = f"github.com/dcos/{repo}?ref={version}/{self.config['platform']}"
 
             # Converting our YAML config to the required format. You can find an example of that format in the
             # Advance YAML Configuration" section here:
             # https://github.com/mesosphere/terraform-dcos-enterprise/tree/master/aws
             with open(self.cluster_profile_path, 'w') as file:
                 for k, v in self.config['terraform_config'].items():
-                    file.write(k + ' = ')
+                    file.write(f'{k} = ')
                     if type(k) is dict:
-                        file.write('<<EOF\n{}\nEOF\n'.format(yaml.dump(v)))
+                        file.write(f'<<EOF\n{yaml.dump(v)}\nEOF\n')
                     else:
-                        file.write('"{}"\n'.format(v))
+                        file.write(f'"{v}"\n')
             subprocess.run([self.terraform_cmd(), 'init', '-from-module', module], cwd=self.init_dir,
                            check=True, stderr=subprocess.STDOUT)
             self._init_dir_gpu_setup()
@@ -176,7 +173,10 @@ class TerraformLauncher(util.AbstractLauncher):
         """
         result = subprocess.run([self.terraform_cmd(), 'output'], cwd=self.init_dir, check=True, stdout=subprocess.PIPE)
         info = result.stdout.decode('utf-8')
-        self.config['ssh_user'] = re.search('ssh_user = \w+', info).group(0)[len('ssh_user = '):]
+        self.config['ssh_user'] = re.search('ssh_user = \w+', info)[0][
+            len('ssh_user = ') :
+        ]
+
 
         private_agents_ips = _convert_to_describe_format(_get_ips('Private Agent Public IPs', info))
         private_agents_gpu_addresses = _get_ips('GPU Public IPs', info)
@@ -193,9 +193,9 @@ class TerraformLauncher(util.AbstractLauncher):
         public_agent_elb_address = _get_ips('Public Agent ELB Public IP', info=info)
 
         if master_elb_address:
-            description.update({'Master ELB Public IP': master_elb_address[0]})
+            description['Master ELB Public IP'] = master_elb_address[0]
         if public_agent_elb_address:
-            description.update({'Public Agent ELB Public IP': public_agent_elb_address[0]})
+            description['Public Agent ELB Public IP'] = public_agent_elb_address[0]
 
         return description
 
@@ -220,14 +220,18 @@ class TerraformLauncher(util.AbstractLauncher):
             env_dict: the env to use during the test
         """
         if args is None:
-            args = list()
+            args = []
         if self.config['ssh_private_key'] == util.NO_TEST_FLAG or 'ssh_user' not in self.config:
             raise util.LauncherError('MissingInput', 'DC/OS Launch is missing sufficient SSH info to run tests!')
         if details is None:
             details = self.describe()
         # check for any environment variables that contain spaces
-        env_dict = {e: "'{}'".format(env_dict[e]) if ' ' in env_dict[e] else env_dict[e] for e in env_dict}
-        env_string = ' '.join(['{}={}'.format(e, env_dict[e]) for e in env_dict])
+        env_dict = {
+            e: f"'{env_dict[e]}'" if ' ' in env_dict[e] else env_dict[e]
+            for e in env_dict
+        }
+
+        env_string = ' '.join([f'{e}={env_dict[e]}' for e in env_dict])
         arg_string = ' '.join(args)
         # To support 1.8.9-EE, try using the dcos-integration-test-ee folder if possible
         pytest_cmd = """ "source /opt/mesosphere/environment.export &&
@@ -238,7 +242,7 @@ cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1
             test_host = details['masters'][0]['public_ip']
         if ':' in test_host:
             test_host, test_port = test_host.split(':')
-        env_dict['DCOS_DNS_ADDRESS'] = 'http://' + test_host
+        env_dict['DCOS_DNS_ADDRESS'] = f'http://{test_host}'
         return util.try_to_output_unbuffered(self.config, test_host, pytest_cmd, test_port)
 
 
@@ -294,9 +298,9 @@ class AzureLauncher(TerraformLauncher):
 class AwsLauncher(TerraformLauncher):
     def key_helper(self):
         if 'ssh_key_name' not in self.config['terraform_config'] or \
-                'ssh_private_key_filename' not in self.config:
+                    'ssh_private_key_filename' not in self.config:
             bw = aws.BotoWrapper(self.config['aws_region'])
-            key_name = 'terraform-dcos-launch-' + str(uuid.uuid4())
+            key_name = f'terraform-dcos-launch-{str(uuid.uuid4())}'
             self.config['terraform_config']['ssh_key_name'] = key_name
             private_key = bw.create_key_pair(key_name)
             self._key_helper_common(private_key.encode())

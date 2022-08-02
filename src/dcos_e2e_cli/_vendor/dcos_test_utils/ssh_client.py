@@ -69,14 +69,14 @@ class Tunnelled():
         if to_remote:
             if os.path.isdir(src):
                 copy_command.append('-r')
-            remote_full_path = '{}:{}'.format(self.target, dst)
+            remote_full_path = f'{self.target}:{dst}'
             copy_command += [src, remote_full_path]
         else:
-            remote_full_path = '{}:{}'.format(self.target, src)
+            remote_full_path = f'{self.target}:{src}'
             copy_command += [remote_full_path, dst]
         cmd = ['scp'] + self.opt_list + ['-P', str(self.port)] + copy_command
         log.debug('Copying {} to {}'.format(*copy_command[-2:]))
-        log.debug('scp command: {}'.format(cmd))
+        log.debug(f'scp command: {cmd}')
         subprocess.run(cmd, check=True, env={"PATH": os.environ["PATH"]})
 
 
@@ -103,10 +103,12 @@ def open_tunnel(
         host: string containing target host
         port: target's SSH port
     """
-    target = user + '@' + host
+    target = f'{user}@{host}'
     opt_list = SHARED_SSH_OPTS + [
-        '-oControlPath=' + control_path,
-        '-oControlMaster=auto']
+        f'-oControlPath={control_path}',
+        '-oControlMaster=auto',
+    ]
+
     base_cmd = ['ssh', '-p', str(port)] + opt_list
 
     start_tunnel = base_cmd + ['-fnN', '-i', key_path, target]
@@ -213,8 +215,11 @@ def parse_ip(ip: str) -> (str, int):
         return ip, 22
     else:
         raise ValueError(
-            "Expected a string of form <ip> or <ip>:<port> but found a string with more than one " +
-            "colon in it. NOTE: IPv6 is not supported at this time. Got: {}".format(ip))
+            (
+                "Expected a string of form <ip> or <ip>:<port> but found a string with more than one "
+                + f"colon in it. NOTE: IPv6 is not supported at this time. Got: {ip}"
+            )
+        )
 
 
 class AsyncSshClient(SshClient):
@@ -249,7 +254,7 @@ class AsyncSshClient(SshClient):
         Returns:
             dict of the command args, output, returncode, and pid
         """
-        log.debug('Starting command: {}'.format(str(cmd)))
+        log.debug(f'Starting command: {cmd}')
         with _make_slave_pty() as slave_pty:
             process = await asyncio.create_subprocess_exec(
                 *cmd, stdout=asyncio.subprocess.PIPE,
@@ -264,8 +269,11 @@ class AsyncSshClient(SshClient):
                 try:
                     process.terminate()
                 except ProcessLookupError:
-                    log.info('process with pid {} not found'.format(process.pid))
-                log.error('timeout of {} sec reached. PID {} killed'.format(self.process_timeout, process.pid))
+                    log.info(f'process with pid {process.pid} not found')
+                log.error(
+                    f'timeout of {self.process_timeout} sec reached. PID {process.pid} killed'
+                )
+
 
         return {
             "cmd": cmd,
@@ -288,7 +296,7 @@ class AsyncSshClient(SshClient):
         """
         hostname, port = parse_ip(host)
         async with sem:
-            log.debug('Starting run command on {}'.format(host))
+            log.debug(f'Starting run command on {host}')
             with self.tunnel(hostname, port) as t:
                 full_cmd = ['ssh', '-p', str(t.port)] + t.opt_list + [t.target] + cmd
                 result = await self._run_cmd_return_dict_async(full_cmd)
@@ -315,15 +323,15 @@ class AsyncSshClient(SshClient):
             command result dict (see _run_cmd_return_dict_async)
         """
         async with sem:
-            log.debug('Starting copy command on {}'.format(host))
+            log.debug(f'Starting copy command on {host}')
             hostname, port = parse_ip(host)
             copy_command = []
             if recursive:
                 copy_command.append('-r')
-            remote_full_path = '{}@{}:{}'.format(self.user, hostname, remote_path)
+            remote_full_path = f'{self.user}@{hostname}:{remote_path}'
             copy_command += [local_path, remote_full_path]
             full_cmd = ['scp'] + SHARED_SSH_OPTS + ['-P', str(port), '-i', self.key_path] + copy_command
-            log.debug('copy with command {}'.format(full_cmd))
+            log.debug(f'copy with command {full_cmd}')
             result = await self._run_cmd_return_dict_async(full_cmd)
         result['host'] = host
         return result
@@ -360,10 +368,10 @@ class AsyncSshClient(SshClient):
             list of futures of the commands that were started
 
         """
-        log.debug('Starting {} with {} to execute on all hosts'.format(coroutine_name, str(args)))
+        log.debug(f'Starting {coroutine_name} with {args} to execute on all hosts')
         tasks = []
         for host in self.__targets:
-            log.debug('Starting {} on {}'.format(coroutine_name, host))
+            log.debug(f'Starting {coroutine_name} on {host}')
             tasks.append(asyncio.ensure_future(getattr(self, coroutine_name)(sem, host, *args)))
         return tasks
 

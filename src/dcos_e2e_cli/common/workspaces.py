@@ -19,10 +19,6 @@ def get_workspace_dir(
     """
     Get a new workspace directory, within the given directory if one is given.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     base_workspace_dir = value or Path(tempfile.gettempdir())
     workspace_dir = base_workspace_dir / uuid.uuid4().hex
     workspace_dir.mkdir(parents=True)
@@ -42,7 +38,7 @@ def workspace_dir_option(command: Callable[..., None]) -> Callable[..., None]:
         'for details on the temporary directory location if this option is '
         'not set.'
     )
-    function = click.option(
+    return click.option(
         '--workspace-dir',
         type=click_pathlib.Path(
             exists=True,
@@ -52,5 +48,4 @@ def workspace_dir_option(command: Callable[..., None]) -> Callable[..., None]:
         ),
         callback=get_workspace_dir,
         help=help_text,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

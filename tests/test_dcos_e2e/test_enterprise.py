@@ -121,11 +121,11 @@ class TestCopyFiles:
         ]
 
         with Cluster(
-            cluster_backend=cluster_backend,
-            masters=1,
-            agents=0,
-            public_agents=0,
-        ) as cluster:
+                cluster_backend=cluster_backend,
+                masters=1,
+                agents=0,
+                public_agents=0,
+            ) as cluster:
             (master, ) = cluster.masters
             master.send_file(
                 local_path=ca_key_path,
@@ -155,7 +155,7 @@ class TestCopyFiles:
                 superuser_username=superuser_username,
                 superuser_password=superuser_password,
             )
-            master_url = 'https://' + str(master.public_ip_address)
+            master_url = f'https://{str(master.public_ip_address)}'
             response = requests.get(master_url, verify=str(cert_path))
             response.raise_for_status()
 
@@ -206,11 +206,11 @@ class TestCopyFiles:
         files_to_copy_to_genconf_dir = ((cert_dir_on_host, genconf), )
 
         with Cluster(
-            cluster_backend=cluster_backend,
-            masters=1,
-            agents=0,
-            public_agents=0,
-        ) as cluster:
+                cluster_backend=cluster_backend,
+                masters=1,
+                agents=0,
+                public_agents=0,
+            ) as cluster:
             (master, ) = cluster.masters
             master.send_file(
                 local_path=ca_key_path,
@@ -232,7 +232,7 @@ class TestCopyFiles:
                 superuser_username=superuser_username,
                 superuser_password=superuser_password,
             )
-            master_url = 'https://' + str(master.public_ip_address)
+            master_url = f'https://{str(master.public_ip_address)}'
             response = requests.get(master_url, verify=str(cert_path))
             response.raise_for_status()
 
@@ -279,11 +279,11 @@ class TestCopyFiles:
         }
 
         with Cluster(
-            cluster_backend=cluster_backend,
-            masters=1,
-            agents=0,
-            public_agents=0,
-        ) as cluster:
+                cluster_backend=cluster_backend,
+                masters=1,
+                agents=0,
+                public_agents=0,
+            ) as cluster:
             (master, ) = cluster.masters
             master.send_file(
                 local_path=ca_key_path,
@@ -305,7 +305,7 @@ class TestCopyFiles:
                 superuser_username=superuser_username,
                 superuser_password=superuser_password,
             )
-            master_url = 'https://' + str(master.public_ip_address)
+            master_url = f'https://{str(master.public_ip_address)}'
             response = requests.get(master_url, verify=str(cert_path))
             response.raise_for_status()
 
@@ -355,13 +355,14 @@ class TestWaitForDCOS:
                 'dcos',
                 'cluster',
                 'setup',
-                'https://' + str(master.public_ip_address),
+                f'https://{str(master.public_ip_address)}',
                 '--no-check',
                 '--username',
                 superuser_username,
                 '--password',
                 superuser_password,
             ]
+
 
             setup = subprocess.run(
                 args=setup_args,

@@ -193,31 +193,28 @@ class GcpWrapper:
         resource,see https://cloud.google.com/compute/docs/reference/latest/instances
         """
         response = self.compute.instances().get(project=self.project_id, zone=zone, instance=name).execute()
-        log.debug('get_instance_info response: ' + str(response))
+        log.debug(f'get_instance_info response: {str(response)}')
         return response
 
     @catch_http_exceptions
     def list_group_instances(self, group_name: str, zone: str) -> typing.Iterator[dict]:
         response = self.compute.instanceGroupManagers().listManagedInstances(project=self.project_id, zone=zone,
                                                                              instanceGroupManager=group_name).execute()
-        log.debug('list_group_instances response: ' + str(response))
+        log.debug(f'list_group_instances response: {str(response)}')
 
-        for instance in response.get('managedInstances', []):
-            yield instance
+        yield from response.get('managedInstances', [])
 
     @retry(wait_fixed=2000, retry_on_result=lambda res: res is None, stop_max_delay=30 * 1000)
     def get_instance_network_properties(self, instance_name: str, zone: str) -> dict:
         network_info = self.get_instance_info(instance_name, zone)['networkInterfaces'][0]
         if 'networkIP' not in network_info or 'accessConfigs' not in network_info:
             return None
-        if 'natIP' not in network_info['accessConfigs'][0]:
-            return None
-        return network_info
+        return network_info if 'natIP' in network_info['accessConfigs'][0] else None
 
     @catch_http_exceptions
     def create_deployment(self, name: str, deployment_config: dict, tags: dict=None):
         if tags is None:
-            tags = dict()
+            tags = {}
         body = {
             'name': name,
             'description': """{"cluster_type": "DC/OS Onprem on GCE"}""",
@@ -231,7 +228,7 @@ class GcpWrapper:
         log.info('Creating GCE deployment...')
         response = self.deployment_manager.deployments().insert(
             project=self.project_id, body=body).execute()
-        log.debug('create_deployment response: ' + str(response))
+        log.debug(f'create_deployment response: {str(response)}')
 
     @catch_http_exceptions
     def get_deployments(self):
@@ -269,7 +266,7 @@ class Deployment:
     def delete(self):
         response = self.gcp_wrapper.deployment_manager.deployments().delete(project=self.gcp_wrapper.project_id,
                                                                             deployment=self.name).execute()
-        log.debug('delete response: ' + str(response))
+        log.debug(f'delete response: {str(response)}')
 
     @catch_http_exceptions
     def get_info(self) -> dict:
@@ -278,22 +275,22 @@ class Deployment:
         """
         response = self.gcp_wrapper.deployment_manager.deployments().get(project=self.gcp_wrapper.project_id,
                                                                          deployment=self.name).execute()
-        log.debug('get_info response: ' + str(response))
+        log.debug(f'get_info response: {str(response)}')
         return response
 
-    def _check_status(response: dict) -> bool:
+    def _check_status(self) -> bool:
         """ Checks the status of the deployment until it is done or has failed
         :param response : <dict> http response containing info about the deployment
         :return: <boolean> whether to continue checking the status of the deployment (True) or not (False)
         """
-        status = response['operation']['status']
+        status = self['operation']['status']
         if status == 'DONE':
             return False
-        elif status == 'RUNNING' or status == 'PENDING':
+        elif status in ['RUNNING', 'PENDING']:
             log.debug('Waiting for deployment')
             return True
         else:
-            raise Exception('Deployment failed with response: ' + str(response))
+            raise Exception(f'Deployment failed with response: {str(self)}')
 
     @retry(wait_fixed=60 * 1000, retry_on_result=_check_status, retry_on_exception=lambda _: False)
     def wait_for_completion(self) -> dict:
@@ -333,7 +330,7 @@ class Deployment:
         info['labels'] = tag_dict_to_gce_format(tags)
         response = self.gcp_wrapper.deployment_manager.deployments().update(project=self.gcp_wrapper.project_id,
                                                                             deployment=self.name, body=info).execute()
-        log.debug('update_tags response: ' + str(response))
+        log.debug(f'update_tags response: {str(response)}')
         return response
 
     def get_tags(self):
@@ -351,19 +348,19 @@ class BareClusterDeployment(Deployment):
     """
     @property
     def instance_group_name(self):
-        return self.name + '-group'
+        return f'{self.name}-group'
 
     @property
     def template_name(self):
-        return self.name + '-template'
+        return f'{self.name}-template'
 
     @property
     def network_name(self):
-        return self.name + '-network'
+        return f'{self.name}-network'
 
     @property
     def firewall_name(self):
-        return self.name + '-firewall'
+        return f'{self.name}-firewall'
 
     def __init__(self, gcp_wrapper, name, zone):
         """ zone argument dictates where the single managed
@@ -449,7 +446,7 @@ class BareClusterDeployment(Deployment):
     def hosts(self):
         """ order of return here determines cluster composition, so make sure its consistent
         """
-        output_list = list()
+        output_list = []
         for name in self.instance_names:
             info = self.gcp_wrapper.get_instance_network_properties(name, self.zone)
             output_list.append(Host(private_ip=info['networkIP'], public_ip=info['accessConfigs'][0]['natIP']))

@@ -19,18 +19,13 @@ def test_linux_binaries() -> None:
     """
     repo_root = Path(__file__).parent.parent.parent.absolute()
     binary_paths = make_linux_binaries(repo_root=repo_root)
-    binary_path_names = set(path.name for path in binary_paths)
+    binary_path_names = {path.name for path in binary_paths}
     assert binary_path_names == {'minidcos'}
-    mounts = []
     remote_repo_dir = Path('/repo')
 
-    mounts.append(
-        Mount(
-            source=str(repo_root),
-            target=str(remote_repo_dir),
-            type='bind',
-        ),
-    )
+    mounts = [
+        Mount(source=str(repo_root), target=str(remote_repo_dir), type='bind')
+    ]
 
     remote_paths = []
     for path in binary_paths:

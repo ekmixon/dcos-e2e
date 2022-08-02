@@ -11,39 +11,36 @@ def masters_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     An option decorator for the number of masters.
     """
-    function = click.option(
+    return click.option(
         '--masters',
         type=click.INT,
         default=1,
         show_default=True,
         help='The number of master nodes.',
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def agents_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     An option decorator for the number of agents.
     """
-    function = click.option(
+    return click.option(
         '--agents',
         type=click.INT,
         default=1,
         show_default=True,
         help='The number of agent nodes.',
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def public_agents_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     An option decorator for the number of agents.
     """
-    function = click.option(
+    return click.option(
         '--public-agents',
         type=click.INT,
         default=1,
         show_default=True,
         help='The number of public agent nodes.',
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

@@ -11,10 +11,10 @@ def node_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     An option decorator for choosing a node.
     """
-    function = click.option(
+    return click.option(
         '--node',
         type=str,
-        default=('master_0', ),
+        default=('master_0',),
         show_default=True,
         multiple=True,
         help=(
@@ -26,5 +26,4 @@ def node_option(command: Callable[..., None]) -> Callable[..., None]:
             'a reference in the format "<role>_<number>". '
             'These details be seen with ``minidcos docker inspect``.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

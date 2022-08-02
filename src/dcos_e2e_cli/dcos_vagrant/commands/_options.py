@@ -14,14 +14,13 @@ def vm_memory_mb_option(command: Callable[..., None]) -> Callable[..., None]:
     An option decorator for the amount of memory given to each VM.
     """
     backend = Vagrant()
-    function = click.option(
+    return click.option(
         '--vm-memory-mb',
         type=click.INT,
         default=backend.vm_memory_mb,
         show_default=True,
         help='The amount of memory to give each VM.',
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def vagrant_box_url_option(command: Callable[..., None],
@@ -30,14 +29,13 @@ def vagrant_box_url_option(command: Callable[..., None],
     An option decorator for the Vagrant Box URL to use.
     """
     backend = Vagrant()
-    function = click.option(
+    return click.option(
         '--vagrant-box-url',
         type=click.STRING,
         default=backend.vagrant_box_url,
         show_default=True,
         help='The URL of the Vagrant box to use.',
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def vagrant_box_version_option(command: Callable[..., None],
@@ -50,7 +48,7 @@ def vagrant_box_version_option(command: Callable[..., None],
         'https://www.vagrantup.com/docs/boxes/versioning.html'
         '#version-constraints'
     )
-    function = click.option(
+    return click.option(
         '--vagrant-box-version',
         type=click.STRING,
         default=backend.vagrant_box_version,
@@ -59,5 +57,4 @@ def vagrant_box_version_option(command: Callable[..., None],
             'The version of the Vagrant box to use. '
             'See {version_constraint_url} for details.'
         ).format(version_constraint_url=version_constraint_url),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

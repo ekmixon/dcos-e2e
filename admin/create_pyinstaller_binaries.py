@@ -28,7 +28,7 @@ def is_editable() -> bool:
     distribution = distributions[normalized_package_name]
     project_name = distribution.project_name
     for path_item in sys.path:
-        egg_link = Path(path_item) / (project_name + '.egg-link')
+        egg_link = Path(path_item) / f'{project_name}.egg-link'
         if egg_link.exists():
             return True
     return False
@@ -39,8 +39,9 @@ def require_not_editable(editable: bool) -> None:
     Require the package to have been installed not in editable mode.
     """
 
-    message = dedent(
-        """\
+    if editable:
+        message = dedent(
+            """\
         We explicitly require the package to have been installed without the
         use of ``-e / --editable``.
 
@@ -53,8 +54,7 @@ def require_not_editable(editable: bool) -> None:
 
         Use --accept-editable to ignore this error.
         """,
-    )
-    if editable:
+        )
         raise Exception(message)
 
 
@@ -77,7 +77,7 @@ def remove_existing_files(scripts: Set[Path]) -> None:
         pass
 
     for script in scripts:
-        path = Path(script.name + '.spec')
+        path = Path(f'{script.name}.spec')
         try:
             path.unlink()
         except FileNotFoundError:

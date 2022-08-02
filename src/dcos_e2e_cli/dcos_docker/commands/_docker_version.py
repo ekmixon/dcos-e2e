@@ -24,10 +24,6 @@ def _get_docker_version(
     """
     Get the chosen Docker version.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     return _DOCKER_VERSIONS[value]
 
 
@@ -36,7 +32,7 @@ def docker_version_option(command: Callable[..., None],
     """
     Option for choosing the Docker version to use inside the container.
     """
-    function = click.option(
+    return click.option(
         '--docker-version',
         type=click.Choice(sorted(_DOCKER_VERSIONS.keys())),
         default='18.06.3-ce',
@@ -48,5 +44,4 @@ def docker_version_option(command: Callable[..., None],
             '`MINIDCOS_NODE_DOCKER_VERSION` environment variable.'
         ),
         callback=_get_docker_version,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

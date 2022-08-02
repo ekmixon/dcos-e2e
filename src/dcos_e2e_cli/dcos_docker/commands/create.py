@@ -137,7 +137,7 @@ def create(
         existing_cluster_ids=existing_cluster_ids(),
     )
 
-    http_checks = bool(transport == Transport.SSH)
+    http_checks = transport == Transport.SSH
     wait_command_name = command_path(sibling_ctx=ctx, command=wait)
     doctor_command_name = command_path(sibling_ctx=ctx, command=doctor)
     doctor_message = get_doctor_message(
@@ -159,7 +159,7 @@ def create(
     )
 
     # This is useful for some people to identify containers.
-    container_name_prefix = Docker().container_name_prefix + '-' + cluster_id
+    container_name_prefix = f'{Docker().container_name_prefix}-{cluster_id}'
 
     cluster_backend = Docker(
         container_name_prefix=container_name_prefix,

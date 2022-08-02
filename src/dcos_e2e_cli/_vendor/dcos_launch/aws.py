@@ -28,7 +28,7 @@ class DcosCloudformationLauncher(util.AbstractLauncher):
         the appropriate template parameters for the generated resources
         """
         temp_resources = {}
-        temp_resources.update(self.key_helper())
+        temp_resources |= self.key_helper()
         temp_resources.update(self.zen_helper())
         try:
             stack = self.boto_wrapper.create_stack(
@@ -63,17 +63,17 @@ class DcosCloudformationLauncher(util.AbstractLauncher):
         if 'InternetGateway' not in parameters:
             gateway_id = self.boto_wrapper.create_internet_gateway_tagged(vpc_id, self.config['deployment_name'])
             parameters['InternetGateway'] = gateway_id
-            temp_resources.update({'gateway': gateway_id})
+            temp_resources['gateway'] = gateway_id
         if 'PrivateSubnet' not in parameters:
             private_subnet_id = self.boto_wrapper.create_subnet_tagged(
                 vpc_id, '10.0.0.0/17', self.config['deployment_name'] + 'private')
             parameters['PrivateSubnet'] = private_subnet_id
-            temp_resources.update({'private_subnet': private_subnet_id})
+            temp_resources['private_subnet'] = private_subnet_id
         if 'PublicSubnet' not in parameters:
             public_subnet_id = self.boto_wrapper.create_subnet_tagged(
                 vpc_id, '10.0.128.0/20', self.config['deployment_name'] + '-public')
             parameters['PublicSubnet'] = public_subnet_id
-            temp_resources.update({'public_subnet': public_subnet_id})
+            temp_resources['public_subnet'] = public_subnet_id
         self.config['template_parameters'] = parameters
         return temp_resources
 
@@ -207,7 +207,7 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
         num_public_agents = int(self.config['num_public_agents'])
 
         @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
-               retry_on_result=lambda res: res[1])
+                   retry_on_result=lambda res: res[1])
         def _get_cluster():
             """ Whenever an AWS rate limiting error occurs, for a reason still unknown, there's a strong possibility
             that the hosts will not be found inside the stack. So here we implement a retrying logic with exponential
@@ -239,7 +239,7 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
                                                            num_private_agents, num_private_agents_found,
                                                            num_public_agents, num_public_agents_found,
                                                            bootstrap_host_found))
-                log.info("Stack not ready yet for DC/OS installation. " + msg)
+                log.info(f"Stack not ready yet for DC/OS installation. {msg}")
                 self.stack.refresh_stack()
 
             return cluster, not cluster_matches_config

@@ -37,14 +37,16 @@ def validate_hostname_prefix(prefix):
     valiation occurs. This check in particular was aggravating as no docs surfaced
     this issue, so logs needed to be scanned just to discover this error
     """
-    assert re.match('^[a-z][a-z0-9-]{1,61}[a-z0-9]$', prefix), 'Invalid DNS prefix: {}'.format(prefix)
+    assert re.match(
+        '^[a-z][a-z0-9-]{1,61}[a-z0-9]$', prefix
+    ), f'Invalid DNS prefix: {prefix}'
 
 
 def check_json_object(obj):
     """ Simple check to fill in the map for automatic parameter casting
     JSON objects must be represented as dict at this level
     """
-    assert isinstance(obj, dict), 'Invalid JSON object: {}'.format(obj)
+    assert isinstance(obj, dict), f'Invalid JSON object: {obj}'
     return obj
 
 
@@ -52,7 +54,7 @@ def check_array(arr):
     """ Simple check to fill in the map for automatic parameter casting
     JSON arrays must be represented as lists at this level
     """
-    assert isinstance(arr, list), 'Invalid array: {}'.format(arr)
+    assert isinstance(arr, list), f'Invalid array: {arr}'
     return arr
 
 
@@ -81,7 +83,7 @@ class AzureWrapper:
     def deploy_template_to_new_resource_group(
             self, template_url, group_name, parameters, tags=None, template=None):
         if tags is None:
-            tags = dict()
+            tags = {}
         log.info('Checking deployment parameters vs template before starting...')
         deployment_properties = self.create_deployment_properties(
             template_url, parameters, template=template)
@@ -138,19 +140,26 @@ class AzureWrapper:
             r.raise_for_status()
             template = r.json()
         if 'parameters' not in template:
-            assert user_parameters is None, 'This template does not support parameters, ' \
-                'yet parameters were supplied: {}'.format(user_parameters)
-        log.debug('Constructing DeploymentProperties from user parameters: {}'.format(parameters))
-        template_parameters = {}
-        for k, v in template['parameters'].items():
-            if k in user_parameters:
-                # All templates parameters are required to have a type field.
-                # Azure requires that parameters be provided as {key: {'value': value}}.
-                template_parameters[k] = {
-                    'value': type_cast_map[v['type']](user_parameters.pop(k))}
-        log.debug('Final template parameters: {}'.format(template_parameters))
+            assert (
+                user_parameters is None
+            ), f'This template does not support parameters, yet parameters were supplied: {user_parameters}'
+
+        log.debug(
+            f'Constructing DeploymentProperties from user parameters: {parameters}'
+        )
+
+        template_parameters = {
+            k: {'value': type_cast_map[v['type']](user_parameters.pop(k))}
+            for k, v in template['parameters'].items()
+            if k in user_parameters
+        }
+
+        log.debug(f'Final template parameters: {template_parameters}')
         if len(user_parameters) > 0:
-            raise Exception('Unrecognized template parameters were supplied: {}'.format(user_parameters))
+            raise Exception(
+                f'Unrecognized template parameters were supplied: {user_parameters}'
+            )
+
         return DeploymentProperties(
             template=template,
             mode=DeploymentMode.incremental,
@@ -290,7 +299,10 @@ class DcosAzureResourceGroup:
         """ The only instances of networkInterface Resources are for masters
         """
         for resource in self.list_resources("resourceType eq 'Microsoft.Network/networkInterfaces'"):
-            assert 'master' in resource.name, 'Expected to only find master NICs, not: {}'.format(resource.name)
+            assert (
+                'master' in resource.name
+            ), f'Expected to only find master NICs, not: {resource.name}'
+
             yield self.azure_wrapper.nmc.network_interfaces.get(self.group_name, resource.name)
 
     def get_master_ips(self):
@@ -298,8 +310,13 @@ class DcosAzureResourceGroup:
         loadbalancer FQDN and the VM index plus 2200 (so the first master will be at 2200)
         """
         public_lb_ip = self.public_master_lb_fqdn
-        return [Host(nic_to_host(nic).private_ip, '{}:{}'.format(public_lb_ip, 2200 + int(nic.name[-1])))
-                for nic in self.master_nics]
+        return [
+            Host(
+                nic_to_host(nic).private_ip,
+                f'{public_lb_ip}:{2200 + int(nic.name[-1])}',
+            )
+            for nic in self.master_nics
+        ]
 
     def get_private_agent_ips(self):
         return [nic_to_host(nic) for nic in self.get_scale_set_nics('private')]
@@ -313,7 +330,7 @@ class DcosAzureResourceGroup:
     def update_tags(self, new_tags: dict):
         rg = self.azure_wrapper.rmc.resource_groups.get(self.group_name)
         if rg.tags is None:
-            rg.tags = dict()
+            rg.tags = {}
         rg.tags.update(new_tags)
         self.azure_wrapper.rmc.resource_groups.patch(rg.name, {
             'tags': rg.tags,
@@ -333,11 +350,18 @@ class DcosAzureResourceGroup:
 class HybridDcosAzureResourceGroup(DcosAzureResourceGroup):
     @property
     def master_nics(self):
-        master_nics = []
-        for resource in self.list_resources("resourceType eq 'Microsoft.Network/networkInterfaces'"):
-            if 'master' in resource.name:
-                master_nics.append(resource.name)
-        assert len(master_nics) > 0, 'Cannot find any master NICs into resource group {}'.format(self.group_name)
+        master_nics = [
+            resource.name
+            for resource in self.list_resources(
+                "resourceType eq 'Microsoft.Network/networkInterfaces'"
+            )
+            if 'master' in resource.name
+        ]
+
+        assert (
+            master_nics
+        ), f'Cannot find any master NICs into resource group {self.group_name}'
+
         for name in master_nics:
             yield self.azure_wrapper.nmc.network_interfaces.get(self.group_name, name)
 

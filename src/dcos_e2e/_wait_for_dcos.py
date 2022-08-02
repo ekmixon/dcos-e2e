@@ -50,7 +50,7 @@ def _wait_for_node_poststart(masters: Set[Node]) -> None:
     reading the CA certificate used by certain checks.
     """
     for node in masters:
-        log_msg = 'Running a poststart check on `{}`'.format(str(node))
+        log_msg = f'Running a poststart check on `{str(node)}`'
         LOGGER.debug(log_msg)
         node.run(
             args=[

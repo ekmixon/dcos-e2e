@@ -59,18 +59,18 @@ def wait_for_dcos(
     ).format(doctor_command_name=doctor_command_name)
     click.echo(message)
 
-    no_login_message = (
-        'If you cancel this command while it is running, '
-        'you may not be able to log in. '
-        'To resolve that, run this command again.'
-    )
-
     spinner = Halo(enabled=enable_spinner)
     spinner.start(text='Waiting for DC/OS variant')
     _wait_for_variant(cluster=cluster)
     dcos_variant = get_cluster_variant(cluster=cluster)
     spinner.succeed()
     if dcos_variant == DCOSVariant.OSS:
+        no_login_message = (
+            'If you cancel this command while it is running, '
+            'you may not be able to log in. '
+            'To resolve that, run this command again.'
+        )
+
         click.echo(no_login_message)
     spinner.start(text='Waiting for DC/OS to start')
     try:

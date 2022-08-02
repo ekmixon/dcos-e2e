@@ -55,7 +55,9 @@ def set_from_env(key):
     if key in os.environ:
         return os.environ[key]
     raise LauncherError(
-        'MissingParameter', '{} must be set in local env, but was not found'.format(key))
+        'MissingParameter',
+        f'{key} must be set in local env, but was not found',
+    )
 
 
 def read_file(filename: str):
@@ -71,7 +73,11 @@ def stub(output):
 
 def get_temp_config_path(tmpdir, name, update: dict = None):
     config = yaml.load(
-        pkg_resources.resource_string(dcos_launch.__name__, 'sample_configs/{}'.format(name)).decode('utf-8'))
+        pkg_resources.resource_string(
+            dcos_launch.__name__, f'sample_configs/{name}'
+        ).decode('utf-8')
+    )
+
     if update is not None:
         config.update(update)
     new_config_path = tmpdir.join('my_config.yaml')
@@ -89,7 +95,7 @@ class LauncherError(Exception):
         self.msg = msg
 
     def __repr__(self):
-        return '{}: {}'.format(self.error, self.msg if self.msg else self.__cause__)
+        return f'{self.error}: {self.msg or self.__cause__}'
 
 
 class AbstractLauncher(metaclass=abc.ABCMeta):
@@ -123,19 +129,18 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
             env_dict: the env to use during the test
         """
         if args is None:
-            args = list()
+            args = []
         if self.config['ssh_private_key'] == NO_TEST_FLAG or 'ssh_user' not in self.config:
             raise LauncherError('MissingInput', 'DC/OS Launch is missing sufficient SSH info to run tests!')
         if details is None:
             details = self.describe()
-        # populate minimal env if not already set. Note: use private IPs as this test is from
-        # within the cluster
-        # required for 1.8
-        dcos_version = self.config.get('dcos_version')
-        if dcos_version:
-            env_dict['DCOS_CLI_URL'] = 'https://downloads.dcos.io/cli/testing/binaries/dcos/linux/x86-64/master/dcos' \
-                if dcos_version == 'master' else \
-                'https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-{}/dcos'.format(dcos_version)
+        if dcos_version := self.config.get('dcos_version'):
+            env_dict['DCOS_CLI_URL'] = (
+                'https://downloads.dcos.io/cli/testing/binaries/dcos/linux/x86-64/master/dcos'
+                if dcos_version == 'master'
+                else f'https://downloads.dcos.io/binaries/cli/linux/x86-64/dcos-{dcos_version}/dcos'
+            )
+
         if 'DNS_SEARCH' not in env_dict:
             env_dict['DNS_SEARCH'] = 'false'
         if 'DCOS_PROVIDER' not in env_dict:
@@ -152,8 +157,12 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         if 'DCOS_DNS_ADDRESS' not in env_dict:
             env_dict['DCOS_DNS_ADDRESS'] = 'http://' + details['masters'][0]['private_ip']
         # check for any environment variables that contain spaces
-        env_dict = {e: "'{}'".format(env_dict[e]) if ' ' in env_dict[e] else env_dict[e] for e in env_dict}
-        env_string = ' '.join(['{}={}'.format(e, env_dict[e]) for e in env_dict])
+        env_dict = {
+            e: f"'{env_dict[e]}'" if ' ' in env_dict[e] else env_dict[e]
+            for e in env_dict
+        }
+
+        env_string = ' '.join([f'{e}={env_dict[e]}' for e in env_dict])
         arg_string = ' '.join(args)
         # 1) To support 1.8.9-EE, try using the dcos-integration-test-ee folder if possible
         # 2) Here we are using "| tee ~/pytest_output" so that we can parse that output in CI. When trying to create

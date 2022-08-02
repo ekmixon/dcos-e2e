@@ -15,10 +15,6 @@ def _validate_port_map(
     """
     Turn port map strings into a Dict that ``docker-py`` can use.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     ports = {}  # type: Dict[str, int]
     for ports_definition in value:
         parts = ports_definition.split(':')
@@ -52,7 +48,7 @@ def _validate_port_map(
             ).format(container_port=container_port)
             raise click.BadParameter(message=message)
 
-        key = container_port + '/tcp'
+        key = f'{container_port}/tcp'
         if key in ports:
             message = (
                 'Container port "{container_port}" specified multiple times.'
@@ -68,7 +64,7 @@ def one_master_host_port_map_option(command: Callable[..., None],
     """
     An option decorator for choosing Docker port mappings.
     """
-    function = click.option(
+    return click.option(
         '--one-master-host-port-map',
         type=str,
         callback=_validate_port_map,
@@ -78,5 +74,4 @@ def one_master_host_port_map_option(command: Callable[..., None],
             'The syntax is <HOST_PORT>:<CONTAINER_PORT>'
         ),
         multiple=True,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

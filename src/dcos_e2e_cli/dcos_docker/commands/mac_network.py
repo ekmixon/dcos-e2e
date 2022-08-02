@@ -35,9 +35,6 @@ def _get_ovpn_file_destination(
     """
     Get OVPN file destination.
     """
-    for _ in (ctx, param):
-        pass
-
     path = value.expanduser()
     if path.is_dir():
         path = path / 'docker-for-mac.ovpn'
@@ -134,7 +131,7 @@ def _create_mac_network(configuration_dst: Path, enable_spinner: bool) -> None:
                 break
 
         temporary_extract_dst = Path(TemporaryDirectory().name).resolve()
-        tar_archive = BytesIO(b''.join((i for i in raw_stream)))
+        tar_archive = BytesIO(b''.join(iter(raw_stream)))
         open_tar = tarfile.open(mode='r:', fileobj=tar_archive)
         open_tar.extractall(path=str(temporary_extract_dst))
         configuration_src = temporary_extract_dst / 'docker-for-mac.ovpn'

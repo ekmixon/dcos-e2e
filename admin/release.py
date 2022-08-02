@@ -34,7 +34,7 @@ def get_version() -> str:
     today_tag_labels = [
         item for item in tag_labels if item.startswith(date_str)
     ]
-    micro = int(len(today_tag_labels))
+    micro = len(today_tag_labels)
     return '{date}.{micro}'.format(date=date_str, micro=micro)
 
 
@@ -58,17 +58,18 @@ def create_github_release(
     Create a tag and release on GitHub.
     """
     changelog_url = 'https://dcos-e2e.readthedocs.io/en/latest/changelog.html'
-    release_name = 'Release ' + version
-    release_message = 'See ' + changelog_url
+    release_name = f'Release {version}'
+    release_message = f'See {changelog_url}'
     github_release = repository.create_git_tag_and_release(
         tag=version,
-        tag_message='Release ' + version,
+        tag_message=f'Release {version}',
         release_name=release_name,
         release_message=release_message,
         type='commit',
         object=repository.get_commits()[0].sha,
         draft=False,
     )
+
 
     # The artifacts we build must be built from the tag we just created.
     # This tag is created remotely on GitHub using the GitHub HTTP API.
@@ -80,7 +81,7 @@ def create_github_release(
     # binary shows the correct version.
     local_repository = Repo('.')
     client = HttpGitClient(repository.owner.html_url)
-    remote_refs = client.fetch(repository.name + '.git', local_repository)
+    remote_refs = client.fetch(f'{repository.name}.git', local_repository)
 
     # Update the local tags and references with the remote ones.
     for key, value in remote_refs.items():
@@ -150,10 +151,11 @@ def update_vagrantfile(version: str, vagrantfile: Path) -> None:
     vagrantfile_contents = vagrantfile.read_text()
     updated = re.sub(
         r"DEFAULT_DCOS_E2E_REF\s*=\s*'[^']+'",
-        "DEFAULT_DCOS_E2E_REF = '{}'".format(version),
+        f"DEFAULT_DCOS_E2E_REF = '{version}'",
         vagrantfile_contents,
         count=1,
     )
+
     vagrantfile.write_text(updated)
 
 

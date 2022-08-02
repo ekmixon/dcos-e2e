@@ -15,10 +15,6 @@ def _validate_environment_variable(
     """
     Validate that environment variables are set as expected.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (param, ctx):
-        pass
-
     env = {}
     for definition in value:
         try:
@@ -37,11 +33,10 @@ def environment_variables_option(command: Callable[..., None],
     """
     An option decorator for setting environment variables.
     """
-    function = click.option(
+    return click.option(
         '--env',
         type=str,
         callback=_validate_environment_variable,
         multiple=True,
         help='Set environment variables in the format "<KEY>=<VALUE>"',
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

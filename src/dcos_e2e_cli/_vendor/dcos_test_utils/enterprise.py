@@ -34,7 +34,7 @@ class MesosNodeClientMixin:
                 port = 5051
                 host = self.slaves[0]
             else:
-                raise AssertionError('Mesos node type not recognized: {}'.format(mesos_node))
+                raise AssertionError(f'Mesos node type not recognized: {mesos_node}')
         return super().api_request(method, path_extension, scheme=scheme, host=host, query=query,
                                    fragment=fragment, port=port, **kwargs)
 
@@ -139,8 +139,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api.DcosApiSession):
         self.initial_resource_ids = []
         r = self.iam.get('/acls')
         r.raise_for_status()
-        for o in r.json()['array']:
-            self.initial_resource_ids.append(o['rid'])
+        self.initial_resource_ids.extend(o['rid'] for o in r.json()['array'])
 
     def wait_for_dcos(self):
         """ This method will wait for basic DC/OS services to be running. Once basic endpoints are up,

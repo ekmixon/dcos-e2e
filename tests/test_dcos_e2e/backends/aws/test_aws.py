@@ -348,7 +348,7 @@ def _tag_dict(instance: ServiceResource) -> Dict[str, str]:
     """
     Return an EC2 instance's tags as a dictionary.
     """
-    tag_dict = dict()  # type: Dict[str, str]
+    tag_dict = {}
     tags = instance.tags or {}
 
     for tag in tags:

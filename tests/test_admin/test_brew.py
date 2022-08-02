@@ -46,9 +46,9 @@ def test_brew(tmp_path: Path) -> None:
     client = docker.from_env(version='auto')
     linuxbrew_image = 'linuxbrew/linuxbrew'
     # The path needs to look like a versioned artifact to Linuxbrew.
-    container_archive_path = '/' + archive_name
-    archive_url = 'file://' + container_archive_path
-    head_url = 'file://' + str(Path(local_repository.path).absolute())
+    container_archive_path = f'/{archive_name}'
+    archive_url = f'file://{container_archive_path}'
+    head_url = f'file://{str(Path(local_repository.path).absolute())}'
     homebrew_filename = 'dcose2e.rb'
 
     homebrew_formula_contents = get_homebrew_formula(
@@ -59,7 +59,7 @@ def test_brew(tmp_path: Path) -> None:
 
     homebrew_file = tmp_path / homebrew_filename
     homebrew_file.write_text(homebrew_formula_contents)
-    container_homebrew_file_path = '/' + homebrew_filename
+    container_homebrew_file_path = f'/{homebrew_filename}'
 
     archive_mount = Mount(
         source=str(archive_file.resolve().absolute()),

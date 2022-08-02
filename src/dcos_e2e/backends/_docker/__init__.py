@@ -292,13 +292,7 @@ class Docker(ClusterBackend):
         """
         ssh_user = self.default_user
         return {
-            'bootstrap_url': 'file://' + str(self.bootstrap_tmp_path),
-            # Without this, we see errors like:
-            # "Time is not synchronized / marked as bad by the kernel.".
-            # Adam saw this on Docker for Mac 17.09.0-ce-mac35.
-            #
-            # In that case this was fixable with:
-            #   $ docker run --rm --privileged alpine hwclock -s
+            'bootstrap_url': f'file://{str(self.bootstrap_tmp_path)}',
             'check_time': 'false',
             'cluster_name': 'DCOS',
             'exhibitor_storage_backend': 'static',
@@ -374,9 +368,9 @@ class DockerCluster(ClusterManager):
             private_key_path=ssh_dir / 'id_rsa',
         )
 
-        self._master_prefix = self._cluster_id + '-master-'
-        self._agent_prefix = self._cluster_id + '-agent-'
-        self._public_agent_prefix = self._cluster_id + '-public-agent-'
+        self._master_prefix = f'{self._cluster_id}-master-'
+        self._agent_prefix = f'{self._cluster_id}-agent-'
+        self._public_agent_prefix = f'{self._cluster_id}-public-agent-'
 
         bootstrap_genconf_path = self._genconf_dir / 'serve'
         bootstrap_genconf_path.mkdir()
@@ -694,7 +688,7 @@ class DockerCluster(ClusterManager):
             networks = container.attrs['NetworkSettings']['Networks']
             network_name = 'bridge'
             if len(networks) != 1:
-                [network_name] = list(networks.keys() - set(['bridge']))
+                [network_name] = list(networks.keys() - {'bridge'})
             container_ip_address = IPv4Address(
                 networks[network_name]['IPAddress'],
             )

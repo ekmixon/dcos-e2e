@@ -55,7 +55,7 @@ def retry_on_rate_limiting(e: Exception):
     else:
         raise e
     if error_code in ['Throttling', 'RequestLimitExceeded']:
-        log.warning('AWS API Limiting error: {}'.format(error_code))
+        log.warning(f'AWS API Limiting error: {error_code}')
         return True
     raise e
 
@@ -67,7 +67,7 @@ def instances_to_hosts(instances):
 
 @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000, retry_on_exception=retry_on_rate_limiting)
 def fetch_stack(stack_name, boto_wrapper):
-    log.debug('Attemping to fetch AWS Stack: {}'.format(stack_name))
+    log.debug(f'Attemping to fetch AWS Stack: {stack_name}')
     stack = boto_wrapper.resource('cloudformation').Stack(stack_name)
     for resource in stack.resource_summaries.all():
         if resource.logical_resource_id == 'MasterStack':
@@ -102,7 +102,7 @@ class BotoWrapper:
     def create_key_pair(self, key_name):
         """Returns private key of newly generated pair
         """
-        log.info('Creating KeyPair: {}'.format(key_name))
+        log.info(f'Creating KeyPair: {key_name}')
         key = self.client('ec2').create_key_pair(KeyName=key_name)
         return key['KeyMaterial']
 
@@ -118,8 +118,10 @@ class BotoWrapper:
                 yield from getattr(self.resource(service, region['id']), resource_name).all()
             except ClientError as e:
                 if e.response['Error']['Code'] == 'UnauthorizedOperation':
-                    log.debug("Failed getting resources ({}) for region {} with exception: {}".format(
-                        resource_name, self.region, repr(e)))
+                    log.debug(
+                        f"Failed getting resources ({resource_name}) for region {self.region} with exception: {repr(e)}"
+                    )
+
                 else:
                     raise e
 
@@ -146,7 +148,7 @@ class BotoWrapper:
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
            retry_on_exception=retry_on_rate_limiting)
     def delete_key_pair(self, key_name):
-        log.info('Deleting KeyPair: {}'.format(key_name))
+        log.info(f'Deleting KeyPair: {key_name}')
         self.resource('ec2').KeyPair(key_name).delete()
 
     def create_stack(
@@ -162,7 +164,7 @@ class BotoWrapper:
         Does simple casting of strings or numbers
         Starts stack creation if validation is successful
         """
-        log.info('Requesting AWS CloudFormation: {}'.format(name))
+        log.info(f'Requesting AWS CloudFormation: {name}')
         role_arn = os.getenv('DCOS_LAUNCH_ROLE_ARN')
         args = {
             'StackName': name,
@@ -191,7 +193,7 @@ class BotoWrapper:
         vpc_id = ec2.create_vpc(CidrBlock=cidr, InstanceTenancy='default')['Vpc']['VpcId']
         ec2.get_waiter('vpc_available').wait(VpcIds=[vpc_id])
         ec2.create_tags(Resources=[vpc_id], Tags=[{'Key': 'Name', 'Value': name_tag}])
-        log.info('Created VPC with ID: {}'.format(vpc_id))
+        log.info(f'Created VPC with ID: {vpc_id}')
         return vpc_id
 
     def create_internet_gateway_tagged(self, vpc_id, name_tag):
@@ -200,7 +202,7 @@ class BotoWrapper:
         gateway_id = ec2.create_internet_gateway()['InternetGateway']['InternetGatewayId']
         ec2.attach_internet_gateway(InternetGatewayId=gateway_id, VpcId=vpc_id)
         ec2.create_tags(Resources=[gateway_id], Tags=[{'Key': 'Name', 'Value': name_tag}])
-        log.info('Created internet gateway with ID: {}'.format(gateway_id))
+        log.info(f'Created internet gateway with ID: {gateway_id}')
         return gateway_id
 
     def create_subnet_tagged(self, vpc_id, cidr, name_tag):
@@ -209,13 +211,13 @@ class BotoWrapper:
         subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock=cidr)['Subnet']['SubnetId']
         ec2.create_tags(Resources=[subnet_id], Tags=[{'Key': 'Name', 'Value': name_tag}])
         ec2.get_waiter('subnet_available').wait(SubnetIds=[subnet_id])
-        log.info('Created subnet with ID: {}'.format(subnet_id))
+        log.info(f'Created subnet with ID: {subnet_id}')
         return subnet_id
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
            retry_on_exception=retry_on_rate_limiting)
     def delete_subnet(self, subnet_id):
-        log.info('Deleting subnet: {}'.format(subnet_id))
+        log.info(f'Deleting subnet: {subnet_id}')
         self.client('ec2').delete_subnet(SubnetId=subnet_id)
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
@@ -224,15 +226,15 @@ class BotoWrapper:
         ig = self.resource('ec2').InternetGateway(gateway_id)
         for vpc in ig.attachments:
             vpc_id = vpc['VpcId']
-            log.info('Detaching gateway {} from vpc {}'.format(gateway_id, vpc_id))
+            log.info(f'Detaching gateway {gateway_id} from vpc {vpc_id}')
             ig.detach_from_vpc(VpcId=vpc_id)
-        log.info('Deleting internet gateway: {}'.format(gateway_id))
+        log.info(f'Deleting internet gateway: {gateway_id}')
         ig.delete()
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
            retry_on_exception=retry_on_rate_limiting)
     def delete_vpc(self, vpc_id):
-        log.info('Deleting vpc: {}'.format(vpc_id))
+        log.info(f'Deleting vpc: {vpc_id}')
         self.client('ec2').delete_vpc(VpcId=vpc_id)
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
@@ -261,10 +263,10 @@ class BotoWrapper:
             log.exception('Bucket could not be fetched')
             log.warning('S3 bucket not found when expected during delete, moving on...')
             return
-        log.info('Starting bucket {} deletion'.format(bucket))
+        log.info(f'Starting bucket {bucket} deletion')
         for obj in bucket.objects.all():
             obj.delete()
-        log.info('Trying deleting bucket {} itself'.format(bucket))
+        log.info(f'Trying deleting bucket {bucket} itself')
         bucket.delete()
 
 
@@ -305,7 +307,7 @@ class CfStack:
             self.refresh_stack()
             stack_status = self.get_status()
             if stack_status in end_states:
-                log.info("Final stack status: " + stack_status)
+                log.info(f"Final stack status: {stack_status}")
                 return stack_status
             log.info("Stack status {status}. Continuing to wait... ".format(status=stack_status))
             if stack_status not in transition_states:
@@ -332,7 +334,7 @@ class CfStack:
         for tag in self.stack.tags:
             if tag['Key'] not in new_keys:
                 cf_tags.append(tag)
-        log.info('Updating tags of stack {} to {}'.format(self.stack.name, tags))
+        log.info(f'Updating tags of stack {self.stack.name} to {tags}')
         return self.stack.update(Capabilities=['CAPABILITY_IAM'],
                                  Parameters=self.stack.parameters,
                                  UsePreviousTemplate=True,
@@ -357,15 +359,16 @@ class CfStack:
         for p in self.stack.parameters:
             if p['ParameterKey'] == param:
                 return p['ParameterValue']
-        raise KeyError('Key not found in template parameters: {}. Parameters: {}'.
-                       format(param, self.stack.parameters))
+        raise KeyError(
+            f'Key not found in template parameters: {param}. Parameters: {self.stack.parameters}'
+        )
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
            retry_on_exception=retry_on_rate_limiting)
     def delete(self):
-        log.info('Deleting stack: {}'.format(self.stack.stack_name))
+        log.info(f'Deleting stack: {self.stack.stack_name}')
         self.stack.delete()
-        log.info('Delete successfully initiated for {}'.format(self.stack.stack_name))
+        log.info(f'Delete successfully initiated for {self.stack.stack_name}')
 
 
 class CleanupS3BucketMixin(CfStack):
@@ -474,9 +477,9 @@ class DcosZenCfStack(CfStack):
             os_string = template_url.split('/')[-1].split('.')[-2].split('-')[0]
             ssh_info = CF_OS_SSH_INFO[os_string]
         except (KeyError, IndexError):
-            log.critical('Unexpected template URL: {}'.format(template_url))
+            log.critical(f'Unexpected template URL: {template_url}')
             if os_string is not None:
-                log.critical('No SSH info for OS string: {}'.format(os_string))
+                log.critical(f'No SSH info for OS string: {os_string}')
             raise
         return cls(stack_name, boto_wrapper), ssh_info
 

@@ -27,4 +27,6 @@ def get_launcher(config, env=None):
             return terraform.GcpLauncher(config, env=env)
         if provider == 'onprem':
             return gcp.OnPremLauncher(config, env=env)
-    raise util.LauncherError('UnsupportedAction', 'Launch platform not supported: {}'.format(platform))
+    raise util.LauncherError(
+        'UnsupportedAction', f'Launch platform not supported: {platform}'
+    )

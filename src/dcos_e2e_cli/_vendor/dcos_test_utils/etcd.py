@@ -23,24 +23,24 @@ class EtcdCtl():
     def _get_base_args(self, cert_type) -> List[str]:
         args = ["sudo", ETCDCTL_PATH]
         if is_enterprise():
-            args += ["--endpoints=https://{}".format(ETCD_ENDPOINTS)]
+            args += [f"--endpoints=https://{ETCD_ENDPOINTS}"]
             args += [
-                "--cert=/run/dcos/pki/tls/certs/etcd-client-{}.crt".format(cert_type),
-                "--key=/run/dcos/pki/tls/private/etcd-client-{}.key".format(cert_type),
-                "--cacert={}".format(CA_CERT),
+                f"--cert=/run/dcos/pki/tls/certs/etcd-client-{cert_type}.crt",
+                f"--key=/run/dcos/pki/tls/private/etcd-client-{cert_type}.key",
+                f"--cacert={CA_CERT}",
             ]
+
         else:
-            args += ["--endpoints=http://{}".format(ETCD_ENDPOINTS)]
+            args += [f"--endpoints=http://{ETCD_ENDPOINTS}"]
 
         return args
 
     def run(self, cmd: List[str], check: bool = True,
             env: dict = {}) -> subprocess.CompletedProcess:
-        process = subprocess.run(
+        return subprocess.run(
             self._base_args.copy() + cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,
-            check=check)
-
-        return process
+            check=check,
+        )

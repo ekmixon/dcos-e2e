@@ -107,14 +107,16 @@ class TestEquality:
                                 default_transport=transport,
                             )
 
-                            should_match = bool(
-                                (public_ip_address, private_ip_address) == (
-                                    node_public_ip_address,
-                                    node_private_ip_address,
-                                ),
+                            should_match = (
+                                public_ip_address,
+                                private_ip_address,
+                            ) == (
+                                node_public_ip_address,
+                                node_private_ip_address,
                             )
 
-                            do_match = bool(node == other_node)
+
+                            do_match = node == other_node
                             assert should_match == do_match
 
 
@@ -378,9 +380,9 @@ class TestSendFile:
         testuser = str(uuid.uuid4().hex)
         dcos_node.run(args=['useradd', testuser])
         dcos_node.run(
-            args=['cp', '-R', '$HOME/.ssh', '/home/{}/'.format(testuser)],
-            shell=True,
+            args=['cp', '-R', '$HOME/.ssh', f'/home/{testuser}/'], shell=True
         )
+
 
         random = str(uuid.uuid4())
         local_file = tmp_path / 'example_file.txt'
@@ -410,9 +412,9 @@ class TestSendFile:
         testuser = str(uuid.uuid4().hex)
         dcos_node.run(args=['useradd', testuser])
         dcos_node.run(
-            args=['cp', '-R', '$HOME/.ssh', '/home/{}/'.format(testuser)],
-            shell=True,
+            args=['cp', '-R', '$HOME/.ssh', f'/home/{testuser}/'], shell=True
         )
+
 
         sudoers_line = '{user} ALL=(ALL) NOPASSWD: ALL'.format(user=testuser)
         dcos_node.run(
@@ -512,9 +514,9 @@ class TestPopen:
         testuser = str(uuid.uuid4().hex)
         dcos_node.run(args=['useradd', testuser])
         dcos_node.run(
-            args=['cp', '-R', '$HOME/.ssh', '/home/{}/'.format(testuser)],
-            shell=True,
+            args=['cp', '-R', '$HOME/.ssh', f'/home/{testuser}/'], shell=True
         )
+
 
         echo_result = dcos_node.popen(
             args=['echo', '$HOME'],
@@ -523,7 +525,7 @@ class TestPopen:
         )
         stdout, stderr = echo_result.communicate()
         assert echo_result.returncode == 0
-        assert stdout.strip().decode() == '/home/' + testuser
+        assert stdout.strip().decode() == f'/home/{testuser}'
         assert stderr.strip().decode() == ''
 
         dcos_node.run(args=['userdel', '-r', testuser])
@@ -599,7 +601,7 @@ class TestPopen:
 
         return_code_2 = proc_2.poll()
 
-        assert stdout.strip().decode() == '/' + dcos_node.default_user
+        assert stdout.strip().decode() == f'/{dcos_node.default_user}'
         assert return_code_1 == 0
         assert return_code_2 == 0
 
@@ -635,9 +637,9 @@ class TestRun:
         testuser = str(uuid.uuid4().hex)
         dcos_node.run(args=['useradd', testuser])
         dcos_node.run(
-            args=['cp', '-R', '$HOME/.ssh', '/home/{}/'.format(testuser)],
-            shell=True,
+            args=['cp', '-R', '$HOME/.ssh', f'/home/{testuser}/'], shell=True
         )
+
 
         sudoers_line = '{user} ALL=(ALL) NOPASSWD: ALL'.format(user=testuser)
 
@@ -755,9 +757,9 @@ class TestRun:
         testuser = str(uuid.uuid4().hex)
         dcos_node.run(args=['useradd', testuser])
         dcos_node.run(
-            args=['cp', '-R', '$HOME/.ssh', '/home/{}/'.format(testuser)],
-            shell=True,
+            args=['cp', '-R', '$HOME/.ssh', f'/home/{testuser}/'], shell=True
         )
+
 
         echo_result = dcos_node.run(
             args=['echo', '$HOME'],
@@ -765,7 +767,7 @@ class TestRun:
             shell=True,
         )
         assert echo_result.returncode == 0
-        assert echo_result.stdout.strip().decode() == '/home/' + testuser
+        assert echo_result.stdout.strip().decode() == f'/home/{testuser}'
         assert echo_result.stderr.strip().decode() == ''
 
         dcos_node.run(args=['userdel', '-r', testuser])

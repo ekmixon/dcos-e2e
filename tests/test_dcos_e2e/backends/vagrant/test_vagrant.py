@@ -62,7 +62,7 @@ class TestRunIntegrationTest:  # pragma: no cover
 
 
 def _ip_from_vm_name(vm_name: str,
-                     ) -> Optional[IPv4Address]:  # pragma: no cover
+                     ) -> Optional[IPv4Address]:    # pragma: no cover
     """
     Given the name of a VirtualBox VM, return its IP address.
     """
@@ -76,30 +76,26 @@ def _ip_from_vm_name(vm_name: str,
     ]
     property_result = vertigo_py.execute(args=args)  # type: ignore
     results = yaml.load(property_result, Loader=yaml.FullLoader)
-    if results == 'No value set!':
-        return None
-    return IPv4Address(results['Value'])
+    return None if results == 'No value set!' else IPv4Address(results['Value'])
 
 
 def _description_from_vm_name(vm_name: str,
-                              ) -> Optional[str]:  # pragma: no cover
+                              ) -> Optional[str]:    # pragma: no cover
     """
     Given the name of a VirtualBox VM, return its description address.
     """
     vertigo_vm = vertigo_py.VM(name=vm_name)  # type: ignore
     info = vertigo_vm.parse_info()
-    if 'description' in info:
-        return str(info['description'])
-    return None
+    return str(info['description']) if 'description' in info else None
 
 
-def _get_vm_from_node(node: Node) -> str:  # pragma: no cover
+def _get_vm_from_node(node: Node) -> str:    # pragma: no cover
     """
     Return the container which represents the given ``node``.
     """
     ls_result = bytes(vertigo_py.ls(option='vms'))  # type: ignore
     lines = ls_result.decode().strip().split('\n')
-    vm_names = set(line.split(' ')[0][1:-1] for line in lines)
+    vm_names = {line.split(' ')[0][1:-1] for line in lines}
     [node_vm] = [
         vm_name for vm_name in vm_names
         if _ip_from_vm_name(vm_name=vm_name) == node.private_ip_address

@@ -35,13 +35,14 @@ class DcosCli:
         self.path = os.path.abspath(os.path.expanduser(cli_path))
         updated_env = os.environ.copy()
         # make sure the designated CLI is on top of the PATH
-        updated_env.update({
-            'PATH': "{}:{}".format(
-                os.path.dirname(self.path),
-                os.environ['PATH']),
-            'PYTHONIOENCODING': 'utf-8',
-            'PYTHONUNBUFFERED': 'x',
-        })
+        updated_env.update(
+            {
+                'PATH': f"{os.path.dirname(self.path)}:{os.environ['PATH']}",
+                'PYTHONIOENCODING': 'utf-8',
+                'PYTHONUNBUFFERED': 'x',
+            }
+        )
+
 
         if 'coreos' in platform.platform():
             updated_env.update({
@@ -123,13 +124,13 @@ class DcosCli:
         except subprocess.CalledProcessError as e:
             if e.stderr:
                 stderr = e.stderr.decode('utf-8')
-                log.error('STDERR: {}'.format(stderr))
+                log.error(f'STDERR: {stderr}')
             raise
 
         stdout, stderr = process.stdout.decode('utf-8'), process.stderr.decode('utf-8')
 
-        log.info('STDOUT: {}'.format(stdout))
-        log.info('STDERR: {}'.format(stderr))
+        log.info(f'STDOUT: {stdout}')
+        log.info(f'STDERR: {stderr}')
 
         return (stdout, stderr)
 
@@ -155,8 +156,18 @@ class DcosCli:
             username = os.environ['DCOS_LOGIN_UNAME']
         if not password:
             password = os.environ['DCOS_LOGIN_PW']
-        self.exec_command(["dcos", "cluster", "setup", str(url), "--no-check", "--username={}".format(username),
-                           "--password={}".format(password)])
+        self.exec_command(
+            [
+                "dcos",
+                "cluster",
+                "setup",
+                url,
+                "--no-check",
+                f"--username={username}",
+                f"--password={password}",
+            ]
+        )
+
         if self.core_plugin_url:
             self.exec_command(['dcos', 'plugin', 'add', '-u', self.core_plugin_url])
         if self.ee_plugin_url:
@@ -179,9 +190,16 @@ class DcosCli:
         if not password:
             password = os.environ['DCOS_LOGIN_PW']
 
-        command = ["dcos", "auth", "login", "--username={}".format(username), "--password={}".format(password)]
+        command = [
+            "dcos",
+            "auth",
+            "login",
+            f"--username={username}",
+            f"--password={password}",
+        ]
+
         if provider:
-            command.append("--provider={}".format(provider))
+            command.append(f"--provider={provider}")
 
         self.exec_command(command)
 
@@ -229,7 +247,7 @@ class DcosCliConfiguration:
     def __getitem__(self, key: str):
         value = self.get(key)
         if value is None:
-            raise KeyError("'{}' wasn't found".format(key))
+            raise KeyError(f"'{key}' wasn't found")
 
     def __setitem__(self, key, value):
         self.set(key, value)

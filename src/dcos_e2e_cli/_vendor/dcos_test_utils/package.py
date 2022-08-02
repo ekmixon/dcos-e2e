@@ -31,9 +31,11 @@ class Cosmos(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
         Returns:
             None
         """
-        media_type = "application/vnd.dcos.package." + endpoint + \
-            "-{action}+json;charset=utf-8;" + \
-            "version=v{version}"
+        media_type = (
+            f"application/vnd.dcos.package.{endpoint}"
+            + "-{action}+json;charset=utf-8;"
+        ) + "version=v{version}"
+
         self.session.headers.update({
             'Content-type': media_type.format(action="request", version=request_version),
             'Accept': media_type.format(action="response", version=response_version)
@@ -66,11 +68,11 @@ class Cosmos(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
             'packageName': package_name
         }
         if package_version is not None:
-            package.update({'packageVersion': package_version})
+            package['packageVersion'] = package_version
         if options is not None:
-            package.update({'options': options})
+            package['options'] = options
         if app_id is not None:
-            package.update({'appId': app_id})
+            package['appId'] = app_id
         return self._post('/install', package)
 
     def uninstall_package(self, package_name, app_id=None):
@@ -88,7 +90,7 @@ class Cosmos(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
             'packageName': package_name
         }
         if app_id is not None:
-            package.update({'appId': app_id})
+            package['appId'] = app_id
         return self._post('/uninstall', package)
 
     def list_packages(self):

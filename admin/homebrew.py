@@ -74,9 +74,7 @@ def get_homebrew_formula(
     # platform.
     args = ['poet', first]
     for requirement in requirements[1:]:
-        args.append('--also')
-        args.append(requirement)
-
+        args.extend(('--also', requirement))
     result = subprocess.run(args=args, stdout=subprocess.PIPE, check=True)
     resource_stanzas = str(result.stdout.decode())
     homepage_url = 'http://minidcos.readthedocs.io/en/latest/'

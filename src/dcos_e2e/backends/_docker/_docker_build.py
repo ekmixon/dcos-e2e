@@ -44,7 +44,7 @@ def build_docker_image(
     """
     Build a Docker image to use for node containers.
     """
-    base_tag = tag + ':base'
+    base_tag = f'{tag}:base'
 
     client = docker.from_env(version='auto')
     base_dockerfile = _base_dockerfile(linux_distribution=linux_distribution)

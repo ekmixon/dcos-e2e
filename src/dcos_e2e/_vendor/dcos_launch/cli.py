@@ -51,13 +51,14 @@ def do_main(args):
         info_path = args['--info-path']
         if os.path.exists(info_path):
             raise dcos_launch.util.LauncherError(
-                'InputConflict',  '{} already exists! Delete this or specify a '
-                'different cluster info path with the -i option'.format(info_path))
+                'InputConflict',
+                f'{info_path} already exists! Delete this or specify a different cluster info path with the -i option',
+            )
+
         launcher = dcos_launch.get_launcher(config)
         cluster_info = launcher.create()
         util.write_json(info_path, cluster_info)
-        create_exception = getattr(launcher, 'create_exception', None)
-        if create_exception:
+        if create_exception := getattr(launcher, 'create_exception', None):
             raise create_exception
         return 0
 
@@ -79,7 +80,7 @@ def do_main(args):
         return 0
 
     if args['pytest']:
-        var_list = list()
+        var_list = []
         if args['--env'] is not None:
             if '=' in args['--env']:
                 # User is attempting to do an assignment with the option
@@ -87,11 +88,12 @@ def do_main(args):
                     'OptionError', "The '--env' option can only pass through environment variables "
                     "from the current environment. Set variables according to the shell being used.")
             var_list = args['--env'].split(',')
-            missing = [v for v in var_list if v not in os.environ]
-            if len(missing) > 0:
+            if missing := [v for v in var_list if v not in os.environ]:
                 raise dcos_launch.util.LauncherError(
-                    'MissingInput', 'Environment variable arguments have been indicated '
-                    'but not set: {}'.format(repr(missing)))
+                    'MissingInput',
+                    f'Environment variable arguments have been indicated but not set: {repr(missing)}',
+                )
+
         env_dict = {e: os.environ[e] for e in var_list}
         return launcher.test(args['<pytest_extras>'], env_dict)
 
@@ -101,7 +103,7 @@ def do_main(args):
 
 
 def main(argv=None):
-    args = docopt(__doc__, argv=argv, version='dcos-launch {}'.format(dcos_launch.VERSION))
+    args = docopt(__doc__, argv=argv, version=f'dcos-launch {dcos_launch.VERSION}')
 
     try:
         return do_main(args)

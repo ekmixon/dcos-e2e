@@ -55,9 +55,7 @@ def existing_cluster_ids() -> Set[str]:
     client = docker_client()
     filters = {'label': CLUSTER_ID_LABEL_KEY}
     containers = client.containers.list(filters=filters)
-    return set(
-        container.labels[CLUSTER_ID_LABEL_KEY] for container in containers
-    )
+    return {container.labels[CLUSTER_ID_LABEL_KEY] for container in containers}
 
 
 class ClusterContainers(ClusterRepresentation):
@@ -71,7 +69,7 @@ class ClusterContainers(ClusterRepresentation):
             cluster_id: The ID of the cluster.
             transport: The transport to use for communication with nodes.
         """
-        self._cluster_id_label = CLUSTER_ID_LABEL_KEY + '=' + cluster_id
+        self._cluster_id_label = f'{CLUSTER_ID_LABEL_KEY}={cluster_id}'
         self._transport = transport
 
     @functools.lru_cache()
@@ -104,7 +102,7 @@ class ClusterContainers(ClusterRepresentation):
         networks = container.attrs['NetworkSettings']['Networks']
         network_name = 'bridge'
         if len(networks) != 1:
-            [network_name] = list(networks.keys() - set(['bridge']))
+            [network_name] = list(networks.keys() - {'bridge'})
         address = IPv4Address(networks[network_name]['IPAddress'])
         return Node(
             public_ip_address=address,

@@ -60,9 +60,7 @@ def _cache_filter(tar_info: tarfile.TarInfo) -> Optional[tarfile.TarInfo]:
     """
     if '__pycache__' in tar_info.name:
         return None
-    if tar_info.name.endswith('.pyc'):
-        return None
-    return tar_info
+    return None if tar_info.name.endswith('.pyc') else tar_info
 
 
 def _send_tarstream_to_node_and_extract(
@@ -230,10 +228,11 @@ def sync_code_to_masters(
         click.echo(message, err=True)
         sys.exit(1)
 
-    syncing_oss_to_ee = bool(
+    syncing_oss_to_ee = (
         dcos_variant == DCOSVariant.ENTERPRISE
-        and dcos_checkout_dir_variant == DCOSVariant.OSS,
+        and dcos_checkout_dir_variant == DCOSVariant.OSS
     )
+
 
     node_active_dir = Path('/opt/mesosphere/active')
     node_test_dir = node_active_dir / 'dcos-integration-test'

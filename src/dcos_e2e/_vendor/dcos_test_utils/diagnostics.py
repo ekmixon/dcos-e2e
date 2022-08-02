@@ -65,7 +65,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
         return self._start_diagnostics_job()
 
     def _start_diagnostics_job(self):
-        return self.put('/diagnostics/' + str(uuid.uuid1()))
+        return self.put(f'/diagnostics/{str(uuid.uuid1())}')
 
     def _legacy_start_diagnostics_job(self, nodes: dict = None):
         if nodes is None:
@@ -91,10 +91,10 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
     def _wait_for_diagnostics_job(self):
         session_response = self.get('/diagnostics')
         response = check_json(session_response)
-        for bundle in response:
-            if bundle['status'] in {'Unknown', 'Started', 'InProgress'}:
-                return False
-        return True
+        return all(
+            bundle['status'] not in {'Unknown', 'Started', 'InProgress'}
+            for bundle in response
+        )
 
     def _legacy_wait_for_diagnostics_job(self, last_datapoint: dict):
         """
@@ -114,7 +114,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
 
             if attributes['is_running']:
                 percent_done = attributes['job_progress_percentage']
-                logging.info("Job is running. Progress: {}".format(percent_done))
+                logging.info(f"Job is running. Progress: {percent_done}")
                 job_running = True
                 break
 
@@ -178,7 +178,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
 
     def _download_diagnostics_reports(self, diagnostics_bundles, download_directory, master):
         for bundle in diagnostics_bundles:
-            log.info('Downloading {}'.format(bundle))
+            log.info(f'Downloading {bundle}')
             r = self.get(os.path.join('/diagnostics/', bundle, 'file'), stream=True, node=master)
             bundle_path = os.path.join(download_directory, bundle)
             with open(bundle_path, 'wb') as f:
@@ -187,7 +187,7 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
 
     def _legacy_download_diagnostics_reports(self, diagnostics_bundles, download_directory, master):
         for bundle in diagnostics_bundles:
-            log.info('Downloading {}'.format(bundle))
+            log.info(f'Downloading {bundle}')
             r = self.get(os.path.join('/report/diagnostics/serve', bundle), stream=True, node=master)
             bundle_path = os.path.join(download_directory, bundle)
             with open(bundle_path, 'wb') as f:
@@ -201,5 +201,5 @@ class Diagnostics(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClientSes
             diagnostics_bundles (str): bundle name to delete. Item of result of self.get_diagnostics_reports
         """
         if self.use_legacy_api:
-            self.post('/report/diagnostics/delete/' + diagnostics_bundle)
-        self.delete('/diagnostics/' + diagnostics_bundle)
+            self.post(f'/report/diagnostics/delete/{diagnostics_bundle}')
+        self.delete(f'/diagnostics/{diagnostics_bundle}')

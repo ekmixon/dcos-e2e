@@ -46,13 +46,15 @@ def _write_xfailflake_report(tests):
     report = []
 
     for test in tests:
-        for xfailflake_marker in _iter_xfail_markers(test):
-            report.append({
+        report.extend(
+            {
                 "name": test.name,
                 "module": test.module.__name__,
                 "path": test.module.__file__,
-                "xfailflake": xfailflake_marker.kwargs
-            })
+                "xfailflake": xfailflake_marker.kwargs,
+            }
+            for xfailflake_marker in _iter_xfail_markers(test)
+        )
 
     json.dump(report, open('xfailflake.json', 'w'))
 

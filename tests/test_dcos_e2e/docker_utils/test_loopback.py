@@ -39,8 +39,8 @@ class TestDockerLoopbackVolume:
         container.stop()
         container.remove()
 
-        assert exists_exit_code == 0, path + ': ' + exists_output.decode()
-        assert size_exit_code == 0, path + ': ' + size_output.decode()
+        assert exists_exit_code == 0, f'{path}: {exists_output.decode()}'
+        assert size_exit_code == 0, f'{path}: {size_output.decode()}'
         expected_output = str(1024 * 1024 * size_megabytes)
         assert size_output.decode().strip() == expected_output
 

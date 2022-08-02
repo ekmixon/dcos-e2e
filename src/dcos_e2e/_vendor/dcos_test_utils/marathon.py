@@ -79,14 +79,14 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         r.raise_for_status()
 
         data = r.json()
-        log.debug('Current application state data: {}'.format(repr(data)))
+        log.debug(f'Current application state data: {repr(data)}')
 
         if 'lastTaskFailure' in data['app']:
             message = data['app']['lastTaskFailure']['message']
             if not ignore_failed_tasks:
-                raise AssertionError('Application deployment failed, reason: {}'.format(message))
+                raise AssertionError(f'Application deployment failed, reason: {message}')
             else:
-                log.warn('Task failure detected: {}'.format(message))
+                log.warn(f'Task failure detected: {message}')
 
         check_tasks_running = (data['app']['tasksRunning'] == app_instances)
         check_tasks_healthy = (not check_health or data['app']['tasksHealthy'] == app_instances)
@@ -97,11 +97,8 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         elif not check_tasks_running:
             log.debug('Not all instances are running!')
             return False
-        elif not check_tasks_healthy:
-            log.debug('Not all instances are healthy!')
-            return False
         else:
-            log.debug('Still waiting for application to scale...')
+            log.debug('Not all instances are healthy!')
             return False
 
     def get_app_service_endpoints(self, app_id: str) -> typing.List[Endpoint]:
@@ -114,7 +111,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
                if len(t['ports']) is not 0
                else Endpoint(t['host'], 0, t['ipAddresses'][0]['ipAddress'])
                for t in data['app']['tasks']]
-        log.info('Application deployed, running on {}'.format(res))
+        log.info(f'Application deployed, running on {res}')
         return res
 
     def wait_for_app_deployment(
@@ -164,7 +161,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
                 [Endpoint(host='172.17.10.202', port=10464), Endpoint(host='172.17.10.201', port=1630)]
         """
         r = self.post('/v2/apps', json=app_definition)
-        log.info('Response from marathon: {}'.format(repr(r.json())))
+        log.info(f'Response from marathon: {repr(r.json())}')
         r.raise_for_status()
 
         try:
@@ -173,8 +170,9 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
                     app_definition['instances'],
                     check_health, ignore_failed_tasks, timeout)
         except retrying.RetryError:
-            raise Exception("Application deployment failed - operation was not "
-                            "completed in {} seconds.".format(timeout))
+            raise Exception(
+                f"Application deployment failed - operation was not completed in {timeout} seconds."
+            )
 
     def deploy_pod(self, pod_definition, timeout=180):
         """Deploy a pod to marathon
@@ -196,15 +194,15 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         log.info('Response from marathon: {}'.format(repr(r.json())))
 
         @retrying.retry(wait_fixed=5000, stop_max_delay=timeout * 1000,
-                        retry_on_result=lambda ret: ret is False,
-                        retry_on_exception=lambda x: False)
+                            retry_on_result=lambda ret: ret is False,
+                            retry_on_exception=lambda x: False)
         def _wait_for_pod_deployment(pod_id):
             # In the context of the `deploy_pod` function, simply waiting for
             # the pod's status to become STABLE is sufficient. In the future,
             # if test pod deployments become more complex, we should switch to
             # using Marathon's event bus and listen for specific events.
             # See DCOS_OSS-1056.
-            r = self.get('/v2/pods' + pod_id + '::status')
+            r = self.get(f'/v2/pods{pod_id}::status')
             r.raise_for_status()
             data = r.json()
             if 'status' in data and data['status'] == 'STABLE':
@@ -242,7 +240,7 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             log.info('Pod destroyed')
             return True
 
-        r = self.delete('/v2/pods' + pod_id, params=FORCE_PARAMS)
+        r = self.delete(f'/v2/pods{pod_id}', params=FORCE_PARAMS)
         assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
 
         try:
@@ -311,12 +309,12 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
         apps_response = self.get('/v2/apps')
         apps_response.raise_for_status()
         for app in apps_response.json()['apps']:
-            log.info('Purging application: {}'.format(app['id']))
+            log.info(f"Purging application: {app['id']}")
             self.delete('/v2/apps' + app['id'], params=FORCE_PARAMS)
         pods_response = self.get('/v2/pods')
         pods_response.raise_for_status()
         for pod in pods_response.json():
-            log.info('Deleting pod: {}'.format(pod['id']))
+            log.info(f"Deleting pod: {pod['id']}")
             self.delete('/v2/pods' + pod['id'], params=FORCE_PARAMS)
         log.info('Deleting groups')
         self.delete('/v2/groups/', params=FORCE_PARAMS)

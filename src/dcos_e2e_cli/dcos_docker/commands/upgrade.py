@@ -105,7 +105,7 @@ def upgrade(
         enable_spinner=enable_spinner,
     )
 
-    http_checks = bool(transport == Transport.SSH)
+    http_checks = transport == Transport.SSH
     wait_command_name = command_path(sibling_ctx=ctx, command=wait)
     run_post_install_steps(
         cluster=cluster,

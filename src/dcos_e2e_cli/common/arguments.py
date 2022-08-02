@@ -13,26 +13,24 @@ def dcos_checkout_dir_argument(command: Callable[..., None],
     """
     Decorate a function to allow choosing a DC/OS checkout directory.
     """
-    function = click.argument(
+    return click.argument(
         'dcos_checkout_dir',
         type=click_pathlib.Path(exists=True),
         envvar='DCOS_CHECKOUT_DIR',
         default='.',
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def node_args_argument(command: Callable[..., None]) -> Callable[..., None]:
     """
     Decorate a function to allow choosing arguments to run on a node.
     """
-    function = click.argument(
+    return click.argument(
         'node_args',
         type=str,
         nargs=-1,
         required=True,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def installer_path_argument(command: Callable[..., None],
@@ -40,7 +38,7 @@ def installer_path_argument(command: Callable[..., None],
     """
     Argument to choose a DC/OS installer URL.
     """
-    function = click.argument(
+    return click.argument(
         'installer',
         type=click_pathlib.Path(
             exists=True,
@@ -48,8 +46,7 @@ def installer_path_argument(command: Callable[..., None],
             file_okay=True,
             resolve_path=True,
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def installer_url_argument(command: Callable[..., None],
@@ -57,8 +54,7 @@ def installer_url_argument(command: Callable[..., None],
     """
     Argument to choose a DC/OS installer URL.
     """
-    function = click.argument(
+    return click.argument(
         'installer_url',
         type=str,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

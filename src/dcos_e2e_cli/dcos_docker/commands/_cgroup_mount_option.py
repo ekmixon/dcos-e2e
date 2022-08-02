@@ -11,7 +11,7 @@ def cgroup_mount_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     Option for choosing to mount `/sys/fs/cgroup` into the container.
     """
-    function = click.option(
+    return click.option(
         '--mount-sys-fs-cgroup/--no-mount-sys-fs-cgroup',
         default=True,
         show_default=True,
@@ -21,5 +21,4 @@ def cgroup_mount_option(command: Callable[..., None]) -> Callable[..., None]:
             'Choose to not mount ``/sys/fs/cgroup`` if it is not available on '
             'the host.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

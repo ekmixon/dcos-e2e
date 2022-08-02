@@ -17,10 +17,6 @@ def get_files_to_copy_to_genconf_dir(
     """
     Get a list of pairs of paths and where to put them on a node.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     local_genconf_dir = value
     files_to_copy_to_genconf_dir = []
     if local_genconf_dir is not None:
@@ -53,5 +49,4 @@ def genconf_dir_option(command: Callable[..., None]) -> Callable[..., None]:
             'directory before running the DC/OS installer.'
         ),
     )  # type: Callable[[Callable[..., None]], Callable[..., None]]
-    function = click_option_function(command)  # type: Callable[..., None]
-    return function
+    return click_option_function(command)

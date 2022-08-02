@@ -37,9 +37,12 @@ def check_json(response: requests.Response):
     response.raise_for_status()
     try:
         json_response = response.json()
-        logging.debug('Response: {}'.format(json_response))
+        logging.debug(f'Response: {json_response}')
     except ValueError:
-        logging.exception('Could not deserialize response contents:{}'.format(response.content.decode()))
+        logging.exception(
+            f'Could not deserialize response contents:{response.content.decode()}'
+        )
+
         raise
     assert len(json_response) > 0, 'Empty JSON returned from dcos-diagnostics request'
     return json_response
@@ -47,7 +50,7 @@ def check_json(response: requests.Response):
 
 def path_join(p1: str, p2: str):
     """Helper to ensure there is only one '/' between two strings"""
-    return '{}/{}'.format(p1.rstrip('/'), p2.lstrip('/'))
+    return f"{p1.rstrip('/')}/{p2.lstrip('/')}"
 
 
 class Url:
@@ -81,15 +84,18 @@ class Url:
     def netloc(self) -> str:
         """ Property which returns the a string of the form IP:port
         """
-        return '{}:{}'.format(self.host, self.port) if self.port else self.host
+        return f'{self.host}:{self.port}' if self.port else self.host
 
     def __str__(self):
-        return urlunsplit((
-            self.scheme,
-            self.netloc,
-            self.path,
-            self.query if self.query else '',
-            self.fragment if self.fragment else ''))
+        return urlunsplit(
+            (
+                self.scheme,
+                self.netloc,
+                self.path,
+                self.query or '',
+                self.fragment or '',
+            )
+        )
 
     def copy(self, scheme=None, host=None, path=None, query=None, fragment=None, port=None):
         """return new Url with any component replaced
@@ -151,7 +157,7 @@ class ApiClientSession:
             fragment=fragment,
             port=port))
 
-        log.debug('Request method {}: {}. Arguments: {}'.format(method, request_url, repr(kwargs)))
+        log.debug(f'Request method {method}: {request_url}. Arguments: {repr(kwargs)}')
         r = self.session.request(method, request_url, **kwargs)
         self.session.cookies.clear()
         return r
@@ -199,7 +205,7 @@ def is_retryable_exception(exception: Exception) -> bool:
     """
     for ex in [requests.exceptions.ConnectionError, requests.exceptions.Timeout]:
         if isinstance(exception, ex):
-            log.debug('Retrying common HTTP error: {}'.format(repr(exception)))
+            log.debug(f'Retrying common HTTP error: {repr(exception)}')
             return True
     return False
 
@@ -253,7 +259,7 @@ class ARNodeApiClientMixin:
                 if scheme == 'https':
                     port = 61002
             else:
-                raise Exception('Node {} is not recognized within the DC/OS cluster'.format(node))
+                raise Exception(f'Node {node} is not recognized within the DC/OS cluster')
             host = node
         return super().api_request(method, path_extension, scheme=scheme, host=host,
                                    query=query, fragment=fragment, port=port, **kwargs)
@@ -296,4 +302,4 @@ def marathon_app_id_to_mesos_dns_subdomain(app_id: str):
 def assert_response_ok(r: requests.Response):
     """ Simple helper to print out the status code and response content if a response is not OK
     """
-    assert r.ok, 'status_code: {} content: {}'.format(r.status_code, r.content)
+    assert r.ok, f'status_code: {r.status_code} content: {r.content}'

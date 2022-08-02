@@ -41,18 +41,18 @@ def generate_dcos_engine_template(
         ):
     """ Generates the template provided to dcos-engine
     """
-    unique_id = str(uuid.uuid4())[:8] + 'dcos'
-    template = {
+    unique_id = f'{str(uuid.uuid4())[:8]}dcos'
+    return {
         "apiVersion": "vlabs",
         "properties": {
             "orchestratorProfile": {
                 "orchestratorType": "DCOS",
-                "orchestratorRelease": dcos_engine_orchestrator_release
+                "orchestratorRelease": dcos_engine_orchestrator_release,
             },
             "masterProfile": {
                 "count": num_masters,
-                "dnsPrefix": "master" + unique_id,
-                "vmSize": master_vm_size
+                "dnsPrefix": f"master{unique_id}",
+                "vmSize": master_vm_size,
             },
             "agentPoolProfiles": [
                 {
@@ -60,8 +60,8 @@ def generate_dcos_engine_template(
                     "count": num_windows_public_agents,
                     "vmSize": windows_public_vm_size,
                     "osType": "Windows",
-                    "dnsPrefix": "wpub" + unique_id,
-                    "ports": [80, 443, 8080, 3389]
+                    "dnsPrefix": f"wpub{unique_id}",
+                    "ports": [80, 443, 8080, 3389],
                 },
                 {
                     "name": "wpri",
@@ -74,33 +74,26 @@ def generate_dcos_engine_template(
                     "count": num_linux_public_agents,
                     "vmSize": linux_public_vm_size,
                     "osType": "Linux",
-                    "dnsPrefix": "linpub" + unique_id,
-                    "ports": [80, 443, 22]
+                    "dnsPrefix": f"linpub{unique_id}",
+                    "ports": [80, 443, 22],
                 },
                 {
                     "name": "linpri",
                     "count": num_linux_private_agents,
                     "vmSize": linux_private_vm_size,
-                    "osType": "Linux"
-                }
+                    "osType": "Linux",
+                },
             ],
             "windowsProfile": {
                 "adminUsername": windows_admin_user,
-                "adminPassword": windows_admin_password
+                "adminPassword": windows_admin_password,
             },
             "linuxProfile": {
                 "adminUsername": linux_admin_user,
-                "ssh": {
-                    "publicKeys": [
-                        {
-                            "keyData": linux_ssh_public_key
-                        }
-                    ]
-                }
-            }
-        }
+                "ssh": {"publicKeys": [{"keyData": linux_ssh_public_key}]},
+            },
+        },
     }
-    return template
 
 
 def run_dcos_engine(dcos_engine_url: str, dcos_engine_template):
@@ -127,13 +120,15 @@ def run_dcos_engine(dcos_engine_url: str, dcos_engine_template):
     subprocess.check_call(cmd, cwd=tmpdir)
 
     cluster_name = dcos_engine_template['properties']['masterProfile']['dnsPrefix']
-    with open(os.path.join(tmpdir, '_output/{}/azuredeploy.json'.format(cluster_name)), 'r') as f:
+    with open(os.path.join(tmpdir, f'_output/{cluster_name}/azuredeploy.json'), 'r') as f:
         arm_template = json.load(f)
-    with open(os.path.join(tmpdir, '_output/{}/azuredeploy.parameters.json'.format(cluster_name)), 'r') as f:
+    with open(os.path.join(tmpdir, f'_output/{cluster_name}/azuredeploy.parameters.json'), 'r') as f:
         arm_template_parameters_raw = json.load(f)
-    arm_template_parameters = dict()
-    for k, v in arm_template_parameters_raw['parameters'].items():
-        arm_template_parameters[k] = v['value']
+    arm_template_parameters = {
+        k: v['value']
+        for k, v in arm_template_parameters_raw['parameters'].items()
+    }
+
     return arm_template, arm_template_parameters
 
 
@@ -180,8 +175,7 @@ class DcosEngineLauncher(dcos_launch.util.AbstractLauncher):
             self.config['windows_admin_password'],
             self.config['linux_admin_user'],
             self.config['dcos_engine_orchestrator_release'])
-        windows_image_source_url = self.config.get('windows_image_source_url')
-        if windows_image_source_url:
+        if windows_image_source_url := self.config.get('windows_image_source_url'):
             dcos_engine_template["properties"]["windowsProfile"]["WindowsImageSourceUrl"] = windows_image_source_url
         else:
             # Use the official Azure image if a custom VHD was not specified
@@ -196,8 +190,7 @@ class DcosEngineLauncher(dcos_launch.util.AbstractLauncher):
         arm_template, self.config['template_parameters'] = run_dcos_engine(self.config['dcos_engine_tarball_url'], dcos_engine_template)  # noqa
         if linux_bs_url:
             self.config['template_parameters']['dcosBootstrapURL'] = linux_bs_url
-        windows_bs_url = self.config.get('dcos_windows_bootstrap_url')
-        if windows_bs_url:
+        if windows_bs_url := self.config.get('dcos_windows_bootstrap_url'):
             self.config['template_parameters']['dcosWindowsBootstrapURL'] = windows_bs_url
         self.azure_wrapper.deploy_template_to_new_resource_group(
             self.config.get('template_url'),
@@ -229,9 +222,15 @@ class DcosEngineLauncher(dcos_launch.util.AbstractLauncher):
 
     def test(self, args: list, env_dict: dict, test_host=None, test_port=2200, details: dict=None) -> int:
         details = self.describe()
-        env_dict.update({
-            'WINDOWS_HOSTS': ','.join(m['private_ip'] for m in details['windows_private_agents']),
-            'WINDOWS_PUBLIC_HOSTS': ','.join(m['private_ip'] for m in details['windows_public_agents'])})
+        env_dict |= {
+            'WINDOWS_HOSTS': ','.join(
+                m['private_ip'] for m in details['windows_private_agents']
+            ),
+            'WINDOWS_PUBLIC_HOSTS': ','.join(
+                m['private_ip'] for m in details['windows_public_agents']
+            ),
+        }
+
         return super().test(args, env_dict, test_host=details['master_fqdn'], test_port=test_port, details=details)
 
     @property

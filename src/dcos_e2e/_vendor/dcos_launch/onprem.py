@@ -51,7 +51,7 @@ class AbstractOnpremLauncher(util.AbstractLauncher, metaclass=abc.ABCMeta):
         cluster = self.get_onprem_cluster()
         onprem_config = self.config['dcos_config']
         # Every install will need a cluster-clocal bootstrap URL with this installer
-        onprem_config['bootstrap_url'] = 'http://' + cluster.bootstrap_host.private_ip
+        onprem_config['bootstrap_url'] = f'http://{cluster.bootstrap_host.private_ip}'
         # Its possible that the masters may live outside the cluster being installed
         if 'master_list' not in onprem_config:
             onprem_config['master_list'] = json.dumps([h.private_ip for h in cluster.masters])
@@ -66,7 +66,10 @@ class AbstractOnpremLauncher(util.AbstractLauncher, metaclass=abc.ABCMeta):
                         t,
                         zk_service_name,
                         ['--publish=2181:2181', '--publish=2888:2888', '--publish=3888:3888', 'jplock/zookeeper'])
-            onprem_config['exhibitor_zk_hosts'] = cluster.bootstrap_host.private_ip + ':2181'
+            onprem_config[
+                'exhibitor_zk_hosts'
+            ] = f'{cluster.bootstrap_host.private_ip}:2181'
+
         elif exhibitor_backend == 'static' and 'master_list' not in onprem_config:
             onprem_config['master_list'] = [h.private_ip for h in cluster.masters]
 
@@ -78,7 +81,7 @@ class AbstractOnpremLauncher(util.AbstractLauncher, metaclass=abc.ABCMeta):
         for script in ('ip_detect', 'ip_detect_public', 'fault_domain_detect'):
             script_hyphen = script.replace('_', '-')
             default_script_path = os.path.join(genconf_dir, script_hyphen)
-            filename_key = script + '_filename'
+            filename_key = f'{script}_filename'
             script_path = os.path.join(genconf_dir, onprem_config.get(filename_key, script_hyphen))
 
             if script == 'fault_domain_detect':
@@ -100,25 +103,35 @@ class AbstractOnpremLauncher(util.AbstractLauncher, metaclass=abc.ABCMeta):
                         shutil.copyfile(script_path, default_script_path)
                     continue
                 if not os.path.exists(script_path):
-                    raise util.LauncherError('FileNotFoundError', '{} script must exist in the genconf dir ({})'.format(
-                        onprem_config[filename_key], genconf_dir))
-            elif script + '_contents' in onprem_config:
-                continue
-            elif os.path.exists(default_script_path):
-                continue
+                    raise util.LauncherError(
+                        'FileNotFoundError',
+                        f'{onprem_config[filename_key]} script must exist in the genconf dir ({genconf_dir})',
+                    )
 
+            elif (
+                filename_key not in onprem_config
+                and f'{script}_contents' in onprem_config
+                or filename_key not in onprem_config
+                and f'{script}_contents' not in onprem_config
+                and os.path.exists(default_script_path)
+            ):
+                continue
             # use a sensible default
             shutil.copyfile(
                 pkg_resources.resource_filename(
-                    dcos_launch.__name__, script_hyphen + '/{}.sh'.format(self.config['platform'])),
-                default_script_path)
+                    dcos_launch.__name__,
+                    script_hyphen + f"/{self.config['platform']}.sh",
+                ),
+                default_script_path,
+            )
+
 
         with open(os.path.join(genconf_dir, 'config.yaml'), 'w') as f:
             if 'ip_detect_contents' not in onprem_config:
                 # this is a special case where DC/OS does not expect this field by default
                 onprem_config['ip_detect_public_filename'] = os.path.join(os.pardir, 'genconf', 'ip-detect-public')
             f.write(yaml.safe_dump(onprem_config))
-        log.debug('Generated cluster configuration: {}'.format(onprem_config))
+        log.debug(f'Generated cluster configuration: {onprem_config}')
         return onprem_config
 
     def _fault_domain_helper(self) -> str:
@@ -127,7 +140,7 @@ class AbstractOnpremLauncher(util.AbstractLauncher, metaclass=abc.ABCMeta):
         Note: agent count has already been validated by the config module so
             we can assume everything will be correct here
         """
-        region_zone_map = dict()
+        region_zone_map = {}
         cluster = self.get_onprem_cluster()
         public_agents = cluster.get_public_agent_ips()
         private_agents = cluster.get_private_agent_ips()
@@ -146,21 +159,21 @@ class AbstractOnpremLauncher(util.AbstractLauncher, metaclass=abc.ABCMeta):
                 while len(masters) > 0:
                     hostname = self.get_ssh_client().command(
                         masters.pop().public_ip, ['hostname']).decode().strip('\n')
-                    region_zone_map[hostname] = region + '-' + str(zones[z_i % z_mod])
+                    region_zone_map[hostname] = f'{region}-{str(zones[z_i % z_mod])}'
                     z_i += 1
             for _ in range(info['num_public_agents']):
                 if len(public_agents) > 0:
                     # distribute out the nodes across the zones until we run out
                     hostname = self.get_ssh_client().command(
                         public_agents.pop().public_ip, ['hostname']).decode().strip('\n')
-                    region_zone_map[hostname] = region + '-' + str(zones[z_i % z_mod])
+                    region_zone_map[hostname] = f'{region}-{str(zones[z_i % z_mod])}'
                     z_i += 1
             for _ in range(info['num_private_agents']):
                 if len(private_agents) > 0:
                     # distribute out the nodes across the zones until we run out
                     hostname = self.get_ssh_client().command(
                         private_agents.pop().public_ip, ['hostname']).decode().strip('\n')
-                    region_zone_map[hostname] = region + '-' + str(zones[z_i % z_mod])
+                    region_zone_map[hostname] = f'{region}-{str(zones[z_i % z_mod])}'
                     z_i += 1
             # now format the hostname-zone map into a BASH case statement
             for host, zone in region_zone_map.items():

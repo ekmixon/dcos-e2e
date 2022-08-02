@@ -16,8 +16,6 @@ def _validate_volumes(
     """
     Turn volume definition strings into ``Mount``s that ``docker-py`` can use.
     """
-    for _ in (ctx, param):
-        pass
     mounts = []
     for volume_definition in value:
         parts = volume_definition.split(':')

@@ -46,9 +46,11 @@ def _get_container_from_node(node: Node) -> docker.models.containers.Container:
     matching_containers = []
     for container in containers:
         networks = container.attrs['NetworkSettings']['Networks']
-        for net in networks:
-            if networks[net]['IPAddress'] == str(node.public_ip_address):
-                matching_containers.append(container)
+        matching_containers.extend(
+            container
+            for net in networks
+            if networks[net]['IPAddress'] == str(node.public_ip_address)
+        )
 
     assert len(matching_containers) == 1
     return matching_containers[0]
@@ -434,17 +436,17 @@ class TestNetworks:
         The ``Node``'s IP addresses correspond to the custom network.
         """
         with Cluster(
-            cluster_backend=Docker(
-                network=docker_network,
-                transport=Transport.DOCKER_EXEC,
-            ),
-            agents=0,
-            public_agents=0,
-        ) as cluster:
+                cluster_backend=Docker(
+                    network=docker_network,
+                    transport=Transport.DOCKER_EXEC,
+                ),
+                agents=0,
+                public_agents=0,
+            ) as cluster:
             (master, ) = cluster.masters
             container = _get_container_from_node(node=master)
             networks = container.attrs['NetworkSettings']['Networks']
-            assert networks.keys() == set(['bridge', docker_network.name])
+            assert networks.keys() == {'bridge', docker_network.name}
             custom_network_ip = networks[docker_network.name]['IPAddress']
             assert custom_network_ip == str(master.public_ip_address)
             assert custom_network_ip == str(master.private_ip_address)
@@ -488,14 +490,14 @@ class TestNetworks:
         bridge network.
         """
         with Cluster(
-            cluster_backend=Docker(),
-            agents=0,
-            public_agents=0,
-        ) as cluster:
+                cluster_backend=Docker(),
+                agents=0,
+                public_agents=0,
+            ) as cluster:
             (master, ) = cluster.masters
             container = _get_container_from_node(node=master)
             networks = container.attrs['NetworkSettings']['Networks']
-            assert networks.keys() == set(['bridge'])
+            assert networks.keys() == {'bridge'}
             bridge_ip_address = networks['bridge']['IPAddress']
             assert bridge_ip_address == str(master.public_ip_address)
             assert bridge_ip_address == str(master.private_ip_address)
@@ -508,14 +510,14 @@ class TestNetworks:
         client = docker.from_env(version='auto')
         network = client.networks.get(network_id='bridge')
         with Cluster(
-            cluster_backend=Docker(network=network),
-            agents=0,
-            public_agents=0,
-        ) as cluster:
+                cluster_backend=Docker(network=network),
+                agents=0,
+                public_agents=0,
+            ) as cluster:
             (master, ) = cluster.masters
             container = _get_container_from_node(node=master)
             networks = container.attrs['NetworkSettings']['Networks']
-            assert networks.keys() == set(['bridge'])
+            assert networks.keys() == {'bridge'}
             bridge_ip_address = networks['bridge']['IPAddress']
             assert bridge_ip_address == str(master.public_ip_address)
             assert bridge_ip_address == str(master.private_ip_address)

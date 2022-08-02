@@ -37,21 +37,25 @@ def check_results(results: list, node_client, tag: str):
     """ loops through result dict list and will print the stderr and raise an exception
     for any nonzero return code
     """
-    failures = list()
+    failures = []
     for result in results:
         if result['returncode'] != 0:
-            log.error('Command failed (exit {}): '.format(result['returncode']) + ' '.join(result['cmd']))
+            log.error(
+                f"Command failed (exit {result['returncode']}): "
+                + ' '.join(result['cmd'])
+            )
+
             log.error('STDOUT: \n' + result['stdout'].decode())
             log.error('STDERR: \n' + result['stderr'].decode())
-            log_name = generate_log_filename('{}-{}-journald.log'.format(tag, result['host']))
-            log.error('Writing journald output to: {}'.format(log_name))
+            log_name = generate_log_filename(f"{tag}-{result['host']}-journald.log")
+            log.error(f'Writing journald output to: {log_name}')
             with open(log_name, 'wb') as f:
                 f.write(node_client.command(result['host'], ['journalctl', '-xe']))
             failures.append(log_name)
-    if len(failures) > 0:
+    if failures:
         raise Exception(
-            'The error were encountered in {}. See journald logs for more info: {}'.format(
-                tag, ','.join(failures)))
+            f"The error were encountered in {tag}. See journald logs for more info: {','.join(failures)}"
+        )
 
 
 def generate_log_filename(target_name: str):
@@ -59,7 +63,7 @@ def generate_log_filename(target_name: str):
         return target_name
     i = 1
     while True:
-        new_name = target_name + '.' + str(i)
+        new_name = f'{target_name}.{str(i)}'
         if not os.path.exists(new_name):
             return new_name
         i += 1
@@ -91,7 +95,12 @@ def install_dcos(
     # enable or disable selinux depending on the config
     if enable_selinux is not None:
         setenforce = '1' if enable_selinux else '0'
-        check_results(all_client.run_command('run', ['sudo setenforce ' + setenforce]), node_client, 'Set SELinux mode')
+        check_results(
+            all_client.run_command('run', [f'sudo setenforce {setenforce}']),
+            node_client,
+            'Set SELinux mode',
+        )
+
 
     # install prereqs if enabled
     if install_prereqs:
@@ -155,7 +164,7 @@ def do_genconf(
     ssh_tunnel.command(['sudo', 'bash', installer_path, '--genconf'], stdout=sys.stdout.buffer)
     # if OK we just need to restart nginx
     host_share_path = os.path.join(installer_dir, 'genconf/serve')
-    volume_mount = host_share_path + ':/usr/share/nginx/html'
+    volume_mount = f'{host_share_path}:/usr/share/nginx/html'
     nginx_service_name = 'dcos-bootstrap-nginx'
     log.info('Starting nginx server to host bootstrap packages')
     if get_docker_service_status(ssh_tunnel, nginx_service_name):
@@ -163,7 +172,12 @@ def do_genconf(
     start_docker_service(
         ssh_tunnel,
         nginx_service_name,
-        ['--publish=80:80', '--volume=' + volume_mount, NGINX_DOCKER_IMAGE_VERSION])
+        [
+            '--publish=80:80',
+            f'--volume={volume_mount}',
+            NGINX_DOCKER_IMAGE_VERSION,
+        ],
+    )
 
 
 def curl(download_url: str, out_path: str) -> list:
@@ -179,7 +193,7 @@ def download_dcos_installer(ssh_tunnel: ssh_client.Tunnelled, installer_path: st
     have been returning 403 for valid uploads for 10-15 minutes after CI finished build
     Therefore, give a five minute buffer to help stabilize CI
     """
-    log.info('Attempting to download installer from: ' + download_url)
+    log.info(f'Attempting to download installer from: {download_url}')
     try:
         ssh_tunnel.command(curl(download_url, installer_path))
     except Exception:
@@ -188,9 +202,22 @@ def download_dcos_installer(ssh_tunnel: ssh_client.Tunnelled, installer_path: st
 
 
 def get_docker_service_status(ssh_tunnel: ssh_client.Tunnelled, docker_name: str) -> str:
-    return ssh_tunnel.command(
-        ['sudo', 'docker', 'ps', '-q', '--filter', 'name=' + docker_name,
-         '--filter', 'status=running']).decode().strip()
+    return (
+        ssh_tunnel.command(
+            [
+                'sudo',
+                'docker',
+                'ps',
+                '-q',
+                '--filter',
+                f'name={docker_name}',
+                '--filter',
+                'status=running',
+            ]
+        )
+        .decode()
+        .strip()
+    )
 
 
 def start_docker_service(ssh_tunnel: ssh_client.Tunnelled, docker_name: str, docker_args: list):
@@ -236,7 +263,7 @@ def do_deploy(
             sem, 'run', ['sudo', 'bash', remote_script_path, 'slave'])
         public_agent_deploy = public_agent_client.start_command_on_hosts(
             sem, 'run', ['sudo', 'bash', remote_script_path, 'slave_public'])
-        results = list()
+        results = []
         for task_list in (master_deploy, private_agent_deploy, public_agent_deploy):
             if task_list:
                 await asyncio.wait(task_list)

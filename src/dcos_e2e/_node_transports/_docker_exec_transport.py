@@ -182,12 +182,7 @@ class DockerExecTransport(NodeTransport):
             public_ip_address: The public IP address of the node.
         """
         container = _container_from_ip_address(ip_address=public_ip_address)
-        args = [
-            'docker',
-            'cp',
-            str(local_path),
-            container.id + ':' + str(remote_path),
-        ]
+        args = ['docker', 'cp', str(local_path), f'{container.id}:{str(remote_path)}']
         run_subprocess(
             args=args,
             log_output_live=False,
@@ -214,12 +209,7 @@ class DockerExecTransport(NodeTransport):
             public_ip_address: The public IP address of the node.
         """
         container = _container_from_ip_address(ip_address=public_ip_address)
-        args = [
-            'docker',
-            'cp',
-            container.id + ':' + str(remote_path),
-            str(local_path),
-        ]
+        args = ['docker', 'cp', f'{container.id}:{str(remote_path)}', str(local_path)]
         run_subprocess(
             args=args,
             log_output_live=False,
@@ -236,9 +226,11 @@ def _container_from_ip_address(ip_address: IPv4Address) -> Container:
     matching_containers = []
     for container in containers:
         networks = container.attrs['NetworkSettings']['Networks']
-        for net in networks:
-            if networks[net]['IPAddress'] == str(ip_address):
-                matching_containers.append(container)
+        matching_containers.extend(
+            container
+            for net in networks
+            if networks[net]['IPAddress'] == str(ip_address)
+        )
 
     assert len(matching_containers) == 1
     return matching_containers[0]

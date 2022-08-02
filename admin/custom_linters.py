@@ -144,7 +144,7 @@ def test_pydocstyle() -> None:
     pydocstyle_result = subprocess.run(args=args, stdout=subprocess.PIPE)
     lines = pydocstyle_result.stdout.decode().strip().split('\n')
     path_issue_pairs = []
-    for item_number in range(int(len(lines) / 2)):
+    for item_number in range(len(lines) // 2):
         path = lines[item_number * 2] * 2
         issue = lines[item_number * 2 + 1]
         path_issue_pairs.append((path, issue))
@@ -158,11 +158,7 @@ def test_pydocstyle() -> None:
     )
     for pair in path_issue_pairs:
         path, issue = pair
-        ignore = False
-        for substring in ignored_path_substrings:
-            if substring in path:
-                ignore = True
-
+        ignore = any(substring in path for substring in ignored_path_substrings)
         if not ignore:
             sys.stderr.write(path + '\n')
             sys.stderr.write(issue + '\n')

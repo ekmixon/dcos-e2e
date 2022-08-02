@@ -28,10 +28,6 @@ def _validate_cluster_id(
     """
     Validate that a value is a valid cluster ID.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     # This matches the Docker ID regular expression.
     # This regular expression can be seen by running:
     # > docker run -it --rm --id=' WHAT ? I DUNNO ! ' alpine
@@ -53,10 +49,6 @@ def _validate_dcos_configuration(
     """
     Validate that a given value is a file containing a YAML map.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     if value is None:
         return {}
 
@@ -79,7 +71,7 @@ def superuser_username_option(command: Callable[..., None],
     """
     An option decorator for a superuser username.
     """
-    function = click.option(
+    return click.option(
         '--superuser-username',
         type=str,
         default=DEFAULT_SUPERUSER_USERNAME,
@@ -88,8 +80,7 @@ def superuser_username_option(command: Callable[..., None],
             'The superuser username is needed only on DC/OS Enterprise '
             'clusters. '
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def superuser_password_option(command: Callable[..., None],
@@ -97,7 +88,7 @@ def superuser_password_option(command: Callable[..., None],
     """
     An option decorator for a superuser password.
     """
-    function = click.option(
+    return click.option(
         '--superuser-password',
         type=str,
         default=DEFAULT_SUPERUSER_PASSWORD,
@@ -106,15 +97,14 @@ def superuser_password_option(command: Callable[..., None],
             'The superuser password is needed only on DC/OS Enterprise '
             'clusters. '
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def extra_config_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     An option decorator for supplying extra DC/OS configuration options.
     """
-    function = click.option(
+    return click.option(
         '--extra-config',
         type=click_pathlib.Path(
             exists=True,
@@ -128,15 +118,14 @@ def extra_config_option(command: Callable[..., None]) -> Callable[..., None]:
             'The contents of this file will be added to add to a default '
             'configuration.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def variant_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     An option decorator for a DC/OS variant.
     """
-    function = click.option(
+    return click.option(
         '--variant',
         type=click.Choice(['auto', 'oss', 'enterprise']),
         default='auto',
@@ -148,8 +137,7 @@ def variant_option(command: Callable[..., None]) -> Callable[..., None]:
             'Finding the variant from the installer takes some time and so '
             'using another option is a performance optimization.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def license_key_option(command: Callable[..., None]) -> Callable[..., None]:
@@ -171,23 +159,21 @@ def license_key_option(command: Callable[..., None]) -> Callable[..., None]:
             '`DCOS_LICENSE_KEY_PATH` environment variable.'
         ),
     )  # type: Callable[[Callable[..., None]], Callable[..., None]]
-    function = click_option_function(command)  # type: Callable[..., None]
-    return function
+    return click_option_function(command)
 
 
 def security_mode_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     An option decorator for the DC/OS Enterprise security mode.
     """
-    function = click.option(
+    return click.option(
         '--security-mode',
         type=click.Choice(['disabled', 'permissive', 'strict']),
         help=(
             'The security mode to use for a DC/OS Enterprise cluster. '
             'This overrides any security mode set in ``--extra-config``.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def copy_to_master_option(command: Callable[..., None]) -> Callable[..., None]:
@@ -207,8 +193,7 @@ def copy_to_master_option(command: Callable[..., None]) -> Callable[..., None]:
             '/absolute/local/path:/remote/path.'
         ),
     )  # type: Callable[[Callable[..., None]], Callable[..., None]]
-    function = click_option_function(command)  # type: Callable[..., None]
-    return function
+    return click_option_function(command)
 
 
 def dcos_login_uname_option(command: Callable[..., None],
@@ -217,7 +202,7 @@ def dcos_login_uname_option(command: Callable[..., None],
     A decorator for choosing the username to set the ``DCOS_LOGIN_UNAME``
     environment variable to.
     """
-    function = click.option(
+    return click.option(
         '--dcos-login-uname',
         type=str,
         default=DEFAULT_SUPERUSER_USERNAME,
@@ -226,8 +211,7 @@ def dcos_login_uname_option(command: Callable[..., None],
             'variable to.'
         ),
         show_default=True,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def dcos_login_pw_option(command: Callable[..., None]) -> Callable[..., None]:
@@ -235,7 +219,7 @@ def dcos_login_pw_option(command: Callable[..., None]) -> Callable[..., None]:
     A decorator for choosing the password to set the ``DCOS_LOGIN_PW``
     environment variable to.
     """
-    function = click.option(
+    return click.option(
         '--dcos-login-pw',
         type=str,
         default=DEFAULT_SUPERUSER_PASSWORD,
@@ -244,8 +228,7 @@ def dcos_login_pw_option(command: Callable[..., None]) -> Callable[..., None]:
             'to.'
         ),
         show_default=True,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def sync_dir_run_option(command: Callable[..., None]) -> Callable[..., None]:
@@ -272,8 +255,7 @@ def sync_dir_run_option(command: Callable[..., None]) -> Callable[..., None]:
             'sync both DC/OS Enterprise and DC/OS Open Source tests.'
         ),
     )  # type: Callable[[Callable[..., None]], Callable[..., None]]
-    function = click_option_function(command)  # type: Callable[..., None]
-    return function
+    return click_option_function(command)
 
 
 def _set_logging(
@@ -284,10 +266,6 @@ def _set_logging(
     """
     Set logging level depending on the chosen verbosity.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     verbosity_level = min(value, 3)
     verbosity_level = max(verbosity_level, 0)
     verbosity_map = {
@@ -314,7 +292,7 @@ def verbosity_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     A decorator for setting the verbosity of logging.
     """
-    function = click.option(
+    return click.option(
         '-v',
         '--verbose',
         help=(
@@ -324,15 +302,14 @@ def verbosity_option(command: Callable[..., None]) -> Callable[..., None]:
         count=True,
         expose_value=False,
         callback=_set_logging,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def test_env_run_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     A decorator for choosing whether to run commands in a test environment.
     """
-    function = click.option(
+    return click.option(
         '--test-env',
         '-te',
         is_flag=True,
@@ -341,15 +318,14 @@ def test_env_run_option(command: Callable[..., None]) -> Callable[..., None]:
             'command is run in the integration test directory. '
             'This means that "pytest" will run the integration tests.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def cluster_id_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     A Click option for choosing a new cluster ID.
     """
-    function = click.option(
+    return click.option(
         '-c',
         '--cluster-id',
         type=str,
@@ -360,8 +336,7 @@ def cluster_id_option(command: Callable[..., None]) -> Callable[..., None]:
             'Use the value "default" to use this cluster for other '
             'commands without specifying --cluster-id.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def existing_cluster_id_option(command: Callable[..., None],
@@ -369,15 +344,14 @@ def existing_cluster_id_option(command: Callable[..., None],
     """
     An option decorator for an existing Cluster ID.
     """
-    function = click.option(
+    return click.option(
         '-c',
         '--cluster-id',
         type=str,
         default='default',
         show_default=True,
         help='The ID of the cluster to use.',
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def enable_selinux_enforcing_option(command: Callable[..., None],
@@ -385,15 +359,14 @@ def enable_selinux_enforcing_option(command: Callable[..., None],
     """
     An option decorator for setting the SELinux mode to "enforcing".
     """
-    function = click.option(
+    return click.option(
         '--enable-selinux-enforcing',
         is_flag=True,
         help=(
             'With this flag set, SELinux is set to enforcing before DC/OS is '
             'installed on the cluster.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def enable_spinner_option(command: Callable[..., None],
@@ -409,5 +382,4 @@ def enable_spinner_option(command: Callable[..., None],
             'This defaults to true if stdout is a TTY.'
         ),
     )  # type: Callable[[Callable[..., None]], Callable[..., None]]
-    function = click_option_function(command)  # type: Callable[..., None]
-    return function
+    return click_option_function(command)

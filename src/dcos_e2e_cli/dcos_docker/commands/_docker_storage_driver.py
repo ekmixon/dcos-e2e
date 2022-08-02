@@ -24,10 +24,6 @@ def _get_docker_storage_driver(
     """
     Get the chosen Docker storage driver.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     return DOCKER_STORAGE_DRIVERS[value]
 
 
@@ -36,7 +32,7 @@ def docker_storage_driver_option(command: Callable[..., None],
     """
     Option for choosing the Docker storage driver to use inside the container.
     """
-    function = click.option(
+    return click.option(
         '--docker-storage-driver',
         type=click.Choice(sorted(DOCKER_STORAGE_DRIVERS.keys())),
         default='auto',
@@ -46,5 +42,4 @@ def docker_storage_driver_option(command: Callable[..., None],
             "By default this uses the host's driver."
         ),
         callback=_get_docker_storage_driver,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

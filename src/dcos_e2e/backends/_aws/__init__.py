@@ -104,14 +104,7 @@ class AWS(ClusterBackend):
         .. _Instance types:
             https://aws.amazon.com/ec2/instance-types
         """
-        supported_distributions = set(
-            [
-                Distribution.CENTOS_7,
-                Distribution.RHEL_7,
-                # Support for Ubuntu is blocked on
-                # https://jira.d2iq.com/browse/DCOS_OSS-3876.
-            ],
-        )
+        supported_distributions = {Distribution.CENTOS_7, Distribution.RHEL_7}
 
         if linux_distribution not in supported_distributions:
             message = (
@@ -298,9 +291,7 @@ class AWSCluster(ClusterManager):
                 cluster_backend.public_agent_ec2_instance_tags,
             ),
         ):
-            node_public_ips = set(
-                str(node.public_ip_address) for node in nodes
-            )
+            node_public_ips = {str(node.public_ip_address) for node in nodes}
             ec2_instances = ec2.instances.filter(
                 Filters=[
                     {
@@ -350,7 +341,7 @@ class AWSCluster(ClusterManager):
                 the installer node. These are files to copy from the host to
                 the installer node before installing DC/OS.
         """
-        new_ip_detect_given = bool(ip_detect_path != self._ip_detect_path)
+        new_ip_detect_given = ip_detect_path != self._ip_detect_path
         if new_ip_detect_given or files_to_copy_to_genconf_dir:
             cluster = Cluster.from_nodes(
                 masters=self.masters,

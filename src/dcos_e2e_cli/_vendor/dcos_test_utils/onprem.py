@@ -43,9 +43,9 @@ class OnpremCluster:
         self.private_agents = private_agents
         self.public_agents = public_agents
         self.bootstrap_host = bootstrap_host
-        assert all(h.private_ip for h in self.hosts), (
-            'All cluster hosts require a private IP. hosts: {}'.format(repr(self.hosts))
-        )
+        assert all(
+            h.private_ip for h in self.hosts
+        ), f'All cluster hosts require a private IP. hosts: {repr(self.hosts)}'
 
     def get_master_ips(self) -> List[helpers.Host]:
         """ :returns: a new copy of self.masters

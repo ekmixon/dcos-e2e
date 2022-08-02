@@ -30,12 +30,12 @@ def setup(log_level_str: str, noisy_modules: list=None):
         log_level = logging.WARNING
     elif log_level_str == 'INFO':
         log_level = logging.INFO
-    elif log_level_str == 'DEBUG' or log_level_str == 'TRACE':
+    elif log_level_str in {'DEBUG', 'TRACE'}:
         log_level = logging.DEBUG
     else:
-        raise ValueError('{} is not a valid log level'.format(log_level_str))
+        raise ValueError(f'{log_level_str} is not a valid log level')
     logging.basicConfig(format=LOGGING_FORMAT, level=log_level)
-    if log_level_str in ('TRACE', 'CRITICAL'):
+    if log_level_str in {'TRACE', 'CRITICAL'}:
         # trace logging is supposd to show all; no need to raise log level
         # critical logging is the highest level so its meaningless to raise more
         return

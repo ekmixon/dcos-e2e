@@ -116,7 +116,7 @@ def get_config(
     """
     Get a DC/OS configuration to use for the given cluster.
     """
-    is_enterprise = bool(dcos_variant == DCOSVariant.ENTERPRISE)
+    is_enterprise = dcos_variant == DCOSVariant.ENTERPRISE
 
     if is_enterprise:
         superuser_username = DEFAULT_SUPERUSER_USERNAME
@@ -131,13 +131,11 @@ def get_config(
             key_contents = license_key.read_text()
             enterprise_extra_config['license_key_contents'] = key_contents
 
-        extra_config = {**enterprise_extra_config, **extra_config}
+        extra_config = enterprise_extra_config | extra_config
         if security_mode is not None:
             extra_config['security'] = security_mode
 
-    dcos_config = {
+    return {
         **cluster_representation.base_config,
         **extra_config,
     }
-
-    return dcos_config

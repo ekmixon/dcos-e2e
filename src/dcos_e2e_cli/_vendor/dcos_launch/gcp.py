@@ -44,8 +44,7 @@ class OnPremLauncher(onprem.AbstractOnpremLauncher):
             deployment = gcp.BareClusterDeployment(self.gcp_wrapper, self.config['deployment_name'],
                                                    self.config['gce_zone'])
             info = deployment.get_info()
-            errors = info['operation'].get('error')
-            if errors:
+            if errors := info['operation'].get('error'):
                 raise util.LauncherError('DeploymentContainsErrors', str(errors))
             return deployment
         except HttpError as e:

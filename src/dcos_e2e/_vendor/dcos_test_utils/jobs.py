@@ -169,7 +169,7 @@ class Jobs(helpers.RetryCommonHttpErrorsMixin, helpers.ApiClientSession):
                 job_id=job_id)
         r_json = self._http_req_json(self.post, url)
 
-        log.info("Started job {}, run id {}".format(job_id, r_json['id']))
+        log.info(f"Started job {job_id}, run id {r_json['id']}")
         return r_json
 
     def run(self, job_id: str, timeout=600) -> (bool, dict, dict):

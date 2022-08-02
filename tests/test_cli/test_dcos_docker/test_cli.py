@@ -274,7 +274,7 @@ class TestCreate:
         An error is shown if the ``--extra-config`` file does not exist.
         """
         runner = CliRunner()
-        invalid_path = '/' + uuid.uuid4().hex
+        invalid_path = f'/{uuid.uuid4().hex}'
         result = runner.invoke(
             minidcos,
             [

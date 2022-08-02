@@ -53,7 +53,7 @@ def load_pem_x509_cert(cert_pem, allow_ec_cert=True):
             backend=cryptography_default_backend
             )
     except ValueError as e:
-        raise CertValidationError('Invalid certificate: %s' % e)
+        raise CertValidationError(f'Invalid certificate: {e}')
 
     public_key = cert.public_key()
 
@@ -68,8 +68,7 @@ def load_pem_x509_cert(cert_pem, allow_ec_cert=True):
         else:
             names_str = names[0]
 
-        raise CertValidationError(
-            'Unexpected public key type (not {})'.format(names_str))
+        raise CertValidationError(f'Unexpected public key type (not {names_str})')
 
     return cert
 
@@ -318,26 +317,24 @@ def generate_root_ca_and_intermediate_ca(
 
         List[(x509.Certificate, rsa.RSAPrivateKey)]
     """
-    chain = []
-
     root_ca_private_key = generate_rsa_private_key()
     root_ca = sign_cert_builder(
         ca_cert_builder(root_ca_private_key.public_key()),
         root_ca_private_key
         )
-    chain.append((root_ca, root_ca_private_key))
-
+    chain = [(root_ca, root_ca_private_key)]
     parent, parent_private_key = root_ca, root_ca_private_key
-    for i in range(0, number):
+    for i in range(number):
         intermediate_ca_private_key = generate_rsa_private_key()
         intermediate_ca = sign_cert_builder(
             ca_cert_builder(
                 intermediate_ca_private_key.public_key(),
-                common_name="Intermediate CA {}".format(i),
+                common_name=f"Intermediate CA {i}",
                 issuer=parent.subject,
-                ),
-            parent_private_key
+            ),
+            parent_private_key,
         )
+
         chain.append((intermediate_ca, intermediate_ca_private_key))
         parent, parent_private_key = intermediate_ca, intermediate_ca_private_key
 
@@ -407,7 +404,7 @@ def sign_cert_builder(cert_builder, private_key, alg=None):
     Return:
         x509.Certificate
     """
-    alg = alg if alg else hashes.SHA256()
+    alg = alg or hashes.SHA256()
     return cert_builder.sign(
         private_key=private_key,
         algorithm=alg,

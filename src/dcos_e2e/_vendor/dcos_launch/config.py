@@ -62,20 +62,15 @@ class LaunchValidator(cerberus.Validator):
         self.config_dir = kwargs['config_dir']
 
     def _normalize_coerce_expand_local_path(self, value):
-        if not value:
-            return value
-        return expand_path(value, self.config_dir)
+        return expand_path(value, self.config_dir) if value else value
 
 
 def _expand_error_dict(errors: dict) -> str:
     message = ''
     for key, errors in errors.items():
-        sub_message = 'Field: {}, Errors: '.format(key)
+        sub_message = f'Field: {key}, Errors: '
         for e in errors:
-            if isinstance(e, dict):
-                sub_message += _expand_error_dict(e)
-            else:
-                sub_message += e
+            sub_message += _expand_error_dict(e) if isinstance(e, dict) else e
             sub_message += '\n'
         message += sub_message
     return message
@@ -102,12 +97,7 @@ def check_selinux_compatible(version: str):
     split_version = version.split('.')
     major = int(split_version[0])
     minor = int(split_version[1])
-    if major > 1:
-        return True
-    if major == 1:
-        if minor >= 12:
-            return True
-    return False
+    return True if major > 1 else major == 1 and minor >= 12
 
 
 def get_validated_config(user_config: dict, config_dir: str) -> dict:
@@ -120,8 +110,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
         config_dir: path for the config file for resolving relative
             file links
     """
-    owner = os.environ.get('USER')
-    if owner:
+    if owner := os.environ.get('USER'):
         user_config.setdefault('tags', {'owner': owner})
 
     # validate against the fields common to all configs
@@ -146,7 +135,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     elif provider == 'dcos-engine':
         validator.schema.update(DCOS_ENGINE_SCHEMA)
     else:
-        raise Exception('Unknown provider!: {}'.format(provider))
+        raise Exception(f'Unknown provider!: {provider}')
 
     # validate again before attempting to add platform information
     if not validator.validate(user_config):
@@ -158,7 +147,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
         if platform in ('gcp', 'gce'):
             user_config['terraform_config']['gcp_ssh_user'] = user_config['ssh_user']
         else:
-            raise Exception('Cannot currently set ssh_user parameter for ' + platform)
+            raise Exception(f'Cannot currently set ssh_user parameter for {platform}')
 
     if validator.normalized(user_config).get('auto_set_selinux'):
         if 'enable_selinux' in user_config:
@@ -187,15 +176,21 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
                 'zen_helper': {
                     'type': 'boolean',
                     'default': False}})
-        validator.schema.update({
-            'aws_region': {
-                'type': 'string',
-                'required': True,
-                'default_setter':
-                    lambda doc:
-                    region if region else
-                    os.environ['AWS_REGION'] if 'AWS_REGION' in os.environ else
-                    util.set_from_env('AWS_DEFAULT_REGION')}})
+        validator.schema.update(
+            {
+                'aws_region': {
+                    'type': 'string',
+                    'required': True,
+                    'default_setter': lambda doc: region
+                    or (
+                        os.environ['AWS_REGION']
+                        if 'AWS_REGION' in os.environ
+                        else util.set_from_env('AWS_DEFAULT_REGION')
+                    ),
+                }
+            }
+        )
+
         if provider == 'onprem':
             validator.schema.update(AWS_ONPREM_SCHEMA)
     elif platform in ('gcp', 'gce'):
@@ -223,9 +218,8 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     validator.allow_unknown = False
     if not validator.validate(user_config):
         _raise_errors(validator)
-    if 'genconf_dir' in user_config:
-        if 'dcos_config' in user_config:
-            _validate_genconf_scripts(user_config['genconf_dir'], user_config['dcos_config'])
+    if 'genconf_dir' in user_config and 'dcos_config' in user_config:
+        _validate_genconf_scripts(user_config['genconf_dir'], user_config['dcos_config'])
     return validator.normalized(user_config)
 
 
@@ -312,84 +306,88 @@ def _validate_genconf_dir(field, value, error):
 
 def _validate_genconf_scripts(genconf_dir, dcos_config):
     for script in ('ip_detect', 'ip_detect_public', 'fault_domain_detect'):
-        filename_key = script + '_filename'
+        filename_key = f'{script}_filename'
         if filename_key in dcos_config:
             if os.path.isabs(dcos_config[filename_key]):
                 continue
             if not os.path.exists(os.path.join(genconf_dir, dcos_config[filename_key])):
-                raise util.LauncherError('FileNotFoundError', '{} script must exist in the genconf dir ({})'.format(
-                    dcos_config[filename_key], genconf_dir))
+                raise util.LauncherError(
+                    'FileNotFoundError',
+                    f'{dcos_config[filename_key]} script must exist in the genconf dir ({genconf_dir})',
+                )
 
 
 ONPREM_DEPLOY_COMMON_SCHEMA = {
-    'deployment_name': {
-        'type': 'string',
-        'required': True},
-    'auto_set_selinux': {
-        'type': 'boolean',
-        'default': False},
-    'enable_selinux': {
-        'type': 'boolean'},
+    'deployment_name': {'type': 'string', 'required': True},
+    'auto_set_selinux': {'type': 'boolean', 'default': False},
+    'enable_selinux': {'type': 'boolean'},
     'platform': {
         'type': 'string',
         'required': True,
         # allow gce but remap it to GCP during validation
-        'allowed': ['aws', 'gcp', 'gce']},
+        'allowed': ['aws', 'gcp', 'gce'],
+    },
     'installer_url': {
         'validator': validate_url,
         'type': 'string',
-        'required': True},
-    'installer_port': {
-        'type': 'integer',
-        'default': 9000},
+        'required': True,
+    },
+    'installer_port': {'type': 'integer', 'default': 9000},
     'num_private_agents': {
         'type': 'integer',
         'required': False,
         'min': 0,
-        # note: cannot assume nested schema values will be populated with defaults
-        #   when the default setter runs
-        'default_setter': lambda doc:
-            sum([v.get('num_private_agents',  0) for v in doc['fault_domain_helper'].values()])
-            if 'fault_domain_helper' in doc else 0},
+        'default_setter': lambda doc: sum(
+            v.get('num_private_agents', 0)
+            for v in doc['fault_domain_helper'].values()
+        )
+        if 'fault_domain_helper' in doc
+        else 0,
+    },
     'num_public_agents': {
         'type': 'integer',
         'required': False,
         'min': 0,
-        # note: cannot assume nested schema values will be populated with defaults
-        #   when the default setter runs
-        'default_setter': lambda doc:
-            sum([v.get('num_public_agents',  0) for v in doc['fault_domain_helper'].values()])
-            if 'fault_domain_helper' in doc else 0},
+        'default_setter': lambda doc: sum(
+            v.get('num_public_agents', 0)
+            for v in doc['fault_domain_helper'].values()
+        )
+        if 'fault_domain_helper' in doc
+        else 0,
+    },
     'num_masters': {
         'type': 'integer',
         'allowed': [1, 3, 5, 7, 9],
-        'required': True},
+        'required': True,
+    },
     'dcos_config': {
         'type': 'dict',
         'required': True,
         'allow_unknown': True,
-        'default_setter': lambda doc: yaml.load(util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml'))),
+        'default_setter': lambda doc: yaml.load(
+            util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml'))
+        ),
         'schema': {
-            'ip_detect_filename': {
-                'excludes': 'ip_detect_contents'},
+            'ip_detect_filename': {'excludes': 'ip_detect_contents'},
             'ip_detect_public_filename': {
-                'excludes': 'ip_detect_public_contents'},
+                'excludes': 'ip_detect_public_contents'
+            },
             'fault_domain_detect_filename': {
-                'excludes': 'fault_domain_detect_contents'},
-            'license_key_filename': {
-                'excludes': 'license_key_contents'},
+                'excludes': 'fault_domain_detect_contents'
+            },
+            'license_key_filename': {'excludes': 'license_key_contents'},
             # the following are fields that will be injected by dcos-launch
             'agent_list': {'readonly': True},
-            'public_agent_list': {'readonly': True}
-            }
+            'public_agent_list': {'readonly': True},
         },
+    },
     'genconf_dir': {
         'type': 'string',
         'required': False,
         'default': 'genconf',
         'coerce': 'expand_local_path',
-        'validator': _validate_genconf_dir
-        },
+        'validator': _validate_genconf_dir,
+    },
     'fault_domain_helper': {
         'type': 'dict',
         'required': False,
@@ -400,38 +398,43 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
                 'num_zones': {
                     'required': True,
                     'type': 'integer',
-                    'default': 1},
+                    'default': 1,
+                },
                 'num_private_agents': {
                     'required': True,
                     'type': 'integer',
-                    'default': 0},
+                    'default': 0,
+                },
                 'num_public_agents': {
                     'required': True,
                     'type': 'integer',
-                    'default': 0},
+                    'default': 0,
+                },
                 'local': {
                     'required': True,
                     'type': 'boolean',
-                    'default': False}
-                }
+                    'default': False,
+                },
             },
-        'validator': _validate_fault_domain_helper
+        },
+        'validator': _validate_fault_domain_helper,
     },
     'prereqs_script_filename': {
         'type': 'string',
-        'default': 'install_prereqs.sh'
+        'default': 'install_prereqs.sh',
     },
     'install_prereqs': {
         'type': 'boolean',
         'required': False,
-        'default': False
+        'default': False,
     },
     'onprem_install_parallelism': {
         'type': 'integer',
         'required': False,
-        'default': 10
+        'default': 10,
     },
 }
+
 
 
 AWS_ONPREM_SCHEMA = {
@@ -527,100 +530,65 @@ def get_platform_dependent_url(url_to_format: str, error_msg: str) -> str:
 
 
 DCOS_ENGINE_SCHEMA = {
-    'deployment_name': {
-        'type': 'string',
-        'required': True},
+    'deployment_name': {'type': 'string', 'required': True},
     'dcos_engine_version': {
         'type': 'string',
-        'default_setter': lambda doc: get_latest_github_release('Azure', 'dcos-engine', '0.2.0')
+        'default_setter': lambda doc: get_latest_github_release(
+            'Azure', 'dcos-engine', '0.2.0'
+        ),
     },
     'dcos_engine_tarball_url': {
         'type': 'string',
         'default_setter': lambda doc: get_platform_dependent_url(
-            'https://github.com/Azure/dcos-engine/releases/download/v{0}/dcos-engine-v{0}-{1}-amd64.tar.gz'.
-                format(doc['dcos_engine_version'], '{}'),
-            'No DCOS-Engine distribution for {}'.format(sys.platform))},
-    'acs_template_filename': {
-        'type': 'string',
-        'required': False},
-    'dcos_engine_orchestrator_release': {
-        'type': 'string',
-        'default': '1.11'},
-    'platform': {
-        'type': 'string',
-        'readonly': True,
-        'default': 'azure'},
-    'ssh_public_key': {
-        'type': 'string',
-        'required': False},
+            'https://github.com/Azure/dcos-engine/releases/download/v{0}/dcos-engine-v{0}-{1}-amd64.tar.gz'.format(
+                doc['dcos_engine_version'], '{}'
+            ),
+            f'No DCOS-Engine distribution for {sys.platform}',
+        ),
+    },
+    'acs_template_filename': {'type': 'string', 'required': False},
+    'dcos_engine_orchestrator_release': {'type': 'string', 'default': '1.11'},
+    'platform': {'type': 'string', 'readonly': True, 'default': 'azure'},
+    'ssh_public_key': {'type': 'string', 'required': False},
     'num_masters': {
         'type': 'integer',
         'allowed': [1, 3, 5, 7, 9],
-        'required': True},
-    'master_vm_size': {
-        'type': 'string',
-        'default': 'Standard_D2_v2'},
-    'num_windows_private_agents': {
-        'type': 'integer',
-        'default': 0},
-    'windows_private_vm_size': {
-        'type': 'string',
-        'default': 'Standard_D2_v2'},
-    'num_windows_public_agents': {
-        'type': 'integer',
-        'default': 0},
-    'windows_public_vm_size': {
-        'type': 'string',
-        'default': 'Standard_D2_v2'},
-    'num_linux_private_agents': {
-        'type': 'integer',
-        'default': 0},
-    'linux_private_vm_size': {
-        'type': 'string',
-        'default': 'Standard_D2_v2'},
-    'num_linux_public_agents': {
-        'type': 'integer',
-        'default': 0},
-    'linux_public_vm_size': {
-        'type': 'string',
-        'default': 'Standard_D2_v2'},
-    'windows_admin_user': {
-        'type': 'string',
-        'default': 'azureuser'},
+        'required': True,
+    },
+    'master_vm_size': {'type': 'string', 'default': 'Standard_D2_v2'},
+    'num_windows_private_agents': {'type': 'integer', 'default': 0},
+    'windows_private_vm_size': {'type': 'string', 'default': 'Standard_D2_v2'},
+    'num_windows_public_agents': {'type': 'integer', 'default': 0},
+    'windows_public_vm_size': {'type': 'string', 'default': 'Standard_D2_v2'},
+    'num_linux_private_agents': {'type': 'integer', 'default': 0},
+    'linux_private_vm_size': {'type': 'string', 'default': 'Standard_D2_v2'},
+    'num_linux_public_agents': {'type': 'integer', 'default': 0},
+    'linux_public_vm_size': {'type': 'string', 'default': 'Standard_D2_v2'},
+    'windows_admin_user': {'type': 'string', 'default': 'azureuser'},
     'windows_admin_password': {
         'type': 'string',
-        'default': 'Replacepassword123'},
-    'linux_admin_user': {
-        'type': 'string',
-        'default': 'azureuser'},
-    'template_parameters': {
-        'type': 'dict'},
-    'dcos_linux_bootstrap_url': {
-        'type': 'string',
-        'required': False},
-    'dcos_windows_bootstrap_url': {
-        'type': 'string',
-        'required': False},
+        'default': 'Replacepassword123',
+    },
+    'linux_admin_user': {'type': 'string', 'default': 'azureuser'},
+    'template_parameters': {'type': 'dict'},
+    'dcos_linux_bootstrap_url': {'type': 'string', 'required': False},
+    'dcos_windows_bootstrap_url': {'type': 'string', 'required': False},
     'windows_publisher': {
         'type': 'string',
-        'default': 'MicrosoftWindowsServer'
+        'default': 'MicrosoftWindowsServer',
     },
-    'windows_offer': {
-        'type': 'string',
-        'default': 'WindowsServerSemiAnnual'
-    },
+    'windows_offer': {'type': 'string', 'default': 'WindowsServerSemiAnnual'},
     'windows_sku': {
         'type': 'string',
-        'default': 'Datacenter-Core-1803-with-Containers-smalldisk'
+        'default': 'Datacenter-Core-1803-with-Containers-smalldisk',
     },
-    'windows_image_source_url': {
-        'type': 'string',
-        'required': False},
+    'windows_image_source_url': {'type': 'string', 'required': False},
     'ssh_user': {
         'type': 'string',
         'required': True,
         'readonly': True,
-        'default_setter': lambda doc: doc['linux_admin_user']},
+        'default_setter': lambda doc: doc['linux_admin_user'],
+    },
 }
 
 
@@ -690,57 +658,68 @@ GCP_ONPREM_SCHEMA = {
 
 
 def set_key_helper(platform: str, terraform_config: dict):
-    if platform in ('gcp', 'gce'):
+    if platform in {'gcp', 'gce'}:
         return 'gcp_ssh_pub_key_file' not in terraform_config
     elif platform == 'azure':
         return 'ssh_pub_key' not in terraform_config
     elif platform == 'aws':
         return 'ssh_key_name' not in terraform_config
-    raise Exception('Platform {} unrecognized'.format(platform))
+    raise Exception(f'Platform {platform} unrecognized')
 
 
 def get_latest_github_release(org: str, repo: str, default: str):
     try:
-        response = requests.get('https://api.github.com/repos/{}/{}/releases/latest'.format(org, repo))
+        response = requests.get(
+            f'https://api.github.com/repos/{org}/{repo}/releases/latest'
+        )
+
         return response.json()['tag_name'][1:]
     except Exception as e:
-        log.error('Failed to get latest {} version. Defaulting to {}. Error details: {}'.format(repo, default, repr(e)))
+        log.error(
+            f'Failed to get latest {repo} version. Defaulting to {default}. Error details: {repr(e)}'
+        )
+
         return default
 
 
 TERRAFORM_COMMON_SCHEMA = {
-    'dcos-enterprise': {
-        'type': 'boolean',
-        'default': False},
+    'dcos-enterprise': {'type': 'boolean', 'default': False},
     'terraform_version': {
         'type': 'string',
-        'default_setter': lambda doc: get_latest_github_release('hashicorp', 'terraform', '0.11.6')
+        'default_setter': lambda doc: get_latest_github_release(
+            'hashicorp', 'terraform', '0.11.6'
+        ),
     },
     'terraform_tarball_url': {
         'type': 'string',
         'readonly': True,
         'default_setter': lambda doc: get_platform_dependent_url(
-            'https://releases.hashicorp.com/terraform/{0}/terraform_{0}_{1}_amd64.zip'.format(doc['terraform_version'],
-                                                                                              sys.platform),
-            'No Terraform distribution for {}'.format(sys.platform))},
+            'https://releases.hashicorp.com/terraform/{0}/terraform_{0}_{1}_amd64.zip'.format(
+                doc['terraform_version'], sys.platform
+            ),
+            f'No Terraform distribution for {sys.platform}',
+        ),
+    },
     'platform': {
         'type': 'string',
         'required': True,
         # allow gce but remap it to GCP during validation
-        'allowed': ['aws', 'gcp', 'gce', 'azure']},
-    'terraform_config': {
-        'type': 'dict',
-        'default': dict()},
+        'allowed': ['aws', 'gcp', 'gce', 'azure'],
+    },
+    'terraform_config': {'type': 'dict', 'default': {}},
     'init_dir': {
         'type': 'string',
-        'default_setter': lambda doc: 'terraform-init-' + str(uuid.uuid4())},
-    'terraform_dcos_version': {
-        'type': 'string',
-        'default': 'master'},
+        'default_setter': lambda doc: f'terraform-init-{str(uuid.uuid4())}',
+    },
+    'terraform_dcos_version': {'type': 'string', 'default': 'master'},
     'terraform_dcos_enterprise_version': {
         'type': 'string',
-        'default': 'master'},
+        'default': 'master',
+    },
     'key_helper': {
         'type': 'boolean',
-        'default_setter': lambda doc: set_key_helper(doc['platform'], doc['terraform_config'])},
+        'default_setter': lambda doc: set_key_helper(
+            doc['platform'], doc['terraform_config']
+        ),
+    },
 }

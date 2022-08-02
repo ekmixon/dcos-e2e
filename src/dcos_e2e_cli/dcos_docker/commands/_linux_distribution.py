@@ -25,10 +25,6 @@ def _get_linux_distribution(
     """
     Get the chosen Linux distribution.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     return _LINUX_DISTRIBUTIONS[value]
 
 
@@ -37,12 +33,11 @@ def linux_distribution_option(command: Callable[..., None],
     """
     Option for choosing the Linux distribution to use.
     """
-    function = click.option(
+    return click.option(
         '--linux-distribution',
         type=click.Choice(sorted(_LINUX_DISTRIBUTIONS.keys())),
         default='centos-7',
         show_default=True,
         help='The Linux distribution to use on the nodes.',
         callback=_get_linux_distribution,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

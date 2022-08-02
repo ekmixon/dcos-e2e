@@ -11,7 +11,7 @@ def variant_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     Option to choose the DC/OS variant for installation.
     """
-    function = click.option(
+    return click.option(
         '--variant',
         type=click.Choice(['oss', 'enterprise']),
         required=True,
@@ -20,5 +20,4 @@ def variant_option(command: Callable[..., None]) -> Callable[..., None]:
             'If the variant does not match the variant of the given installer '
             'URL, an error will occur. '
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

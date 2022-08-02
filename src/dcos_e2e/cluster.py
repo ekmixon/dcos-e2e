@@ -411,17 +411,16 @@ class Cluster(ContextDecorator):
         node = node or next(iter(self.masters))
 
         environment_variables = {
-            # This is needed for 1.9 (and below?)
             'PUBLIC_MASTER_HOSTS': ip_addresses(self.masters),
             'MASTER_HOSTS': ip_addresses(self.masters),
             'SLAVE_HOSTS': ip_addresses(self.agents),
             'PUBLIC_SLAVE_HOSTS': ip_addresses(self.public_agents),
-            'DCOS_DNS_ADDRESS': 'http://' + str(node.private_ip_address),
-            # This is only used by DC/OS 1.9 integration tests
+            'DCOS_DNS_ADDRESS': f'http://{str(node.private_ip_address)}',
             'DCOS_NUM_MASTERS': len(self.masters),
             'DCOS_NUM_AGENTS': len(self.agents) + len(self.public_agents),
             **env,
         }
+
 
         return node.run(
             args=args,
@@ -454,11 +453,6 @@ class Cluster(ContextDecorator):
         On exiting, destroy all nodes in the cluster if the backend supports
         it.
         """
-        # This is a hack to make Vulture not think that these are unused
-        # arguments. We have to receive them to be a valid context manager.
-        for _ in (exc_type, exc_value, traceback):
-            pass
-
         try:
             self.destroy()
         except NotImplementedError:

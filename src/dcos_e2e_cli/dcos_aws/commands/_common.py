@@ -32,7 +32,7 @@ def _tag_dict(instance: ServiceResource) -> Dict[str, str]:
     """
     Return an EC2 instance's tags as a dictionary.
     """
-    tag_dict = dict()  # type: Dict[str, str]
+    tag_dict = {}
 
     if instance.tags is None:
         return tag_dict
@@ -53,7 +53,7 @@ def existing_cluster_ids(aws_region: str) -> Set[str]:
         aws_region: The region to get clusters from.
     """
     ec2 = boto3.resource('ec2', region_name=aws_region)
-    ec2_filter = {'Name': 'tag:' + CLUSTER_ID_TAG_KEY, 'Values': ['*']}
+    ec2_filter = {'Name': f'tag:{CLUSTER_ID_TAG_KEY}', 'Values': ['*']}
     state_filter = {'Name': 'instance-state-name', 'Values': ['running']}
     ec2_instances = ec2.instances.filter(Filters=[ec2_filter, state_filter])
 
@@ -90,17 +90,18 @@ class ClusterInstances(ClusterRepresentation):
             Role.PUBLIC_AGENT: NODE_TYPE_PUBLIC_AGENT_TAG_VALUE,
         }
         cluster_id_tag_filter = {
-            'Name': 'tag:' + CLUSTER_ID_TAG_KEY,
+            'Name': f'tag:{CLUSTER_ID_TAG_KEY}',
             'Values': [self._cluster_id],
         }
+
         node_role_filter = {
-            'Name': 'tag:' + NODE_TYPE_TAG_KEY,
+            'Name': f'tag:{NODE_TYPE_TAG_KEY}',
             'Values': [node_types[role]],
         }
+
         state_filter = {'Name': 'instance-state-name', 'Values': ['running']}
         filters = [cluster_id_tag_filter, node_role_filter, state_filter]
-        ec2_instances = set(ec2.instances.filter(Filters=filters))
-        return ec2_instances
+        return set(ec2.instances.filter(Filters=filters))
 
     def to_node(self, node_representation: ServiceResource) -> Node:
         """
@@ -243,9 +244,10 @@ class ClusterInstances(ClusterRepresentation):
             'num_public_agents': public_agents,
             'platform': 'aws',
             'provider': 'onprem',
+            'dcos_config': backend.base_config,
         }
 
-        launch_config['dcos_config'] = backend.base_config
+
         validated_launch_config = config.get_validated_config(
             user_config=launch_config,
             config_dir=str(self._workspace_dir),

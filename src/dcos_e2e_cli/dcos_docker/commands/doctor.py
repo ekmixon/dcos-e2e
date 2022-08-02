@@ -79,7 +79,7 @@ def _check_docker_root_free_space() -> CheckLevels:
     output_lines = output.decode().strip().split('\n')
     # We skip the first line which is headers.
     # Sometimes the information is split across multiple lines.
-    information = ' '.join(line for line in output_lines[1:])
+    information = ' '.join(output_lines[1:])
     _, _, _, avail, _, _ = information.split()
     available_bytes = int(avail)
     available_gigabytes = available_bytes / 1024 / 1024
@@ -134,9 +134,9 @@ def _check_storage_driver() -> CheckLevels:
     _, output = container.exec_run(cmd=cmd)
     container.stop()
     container.remove(v=True)
-    aufs_supported = bool(b'aufs' in output.split())
-    supported_host_driver = bool(host_driver in DOCKER_STORAGE_DRIVERS)
-    can_work = bool(aufs_supported or supported_host_driver)
+    aufs_supported = b'aufs' in output.split()
+    supported_host_driver = host_driver in DOCKER_STORAGE_DRIVERS
+    can_work = aufs_supported or supported_host_driver
 
     if not can_work:
         message = (
@@ -178,7 +178,7 @@ def _check_networking() -> CheckLevels:
     # Image for a container which sleeps for a long time.
     tiny_image = 'luca3m/sleep'
     client = docker_client()
-    docker_for_mac = bool(client.info()['OperatingSystem'] == 'Docker for Mac')
+    docker_for_mac = client.info()['OperatingSystem'] == 'Docker for Mac'
 
     ping_container = client.containers.run(
         image=tiny_image,
@@ -266,7 +266,7 @@ def _check_memory() -> CheckLevels:
     """
     client = docker_client()
     docker_memory = client.info()['MemTotal']
-    docker_for_mac = bool(client.info()['OperatingSystem'] == 'Docker for Mac')
+    docker_for_mac = client.info()['OperatingSystem'] == 'Docker for Mac'
     message = (
         'Docker has approximately {memory:.1f} GB of memory available. '
         'The amount of memory required depends on the workload. '
@@ -275,12 +275,12 @@ def _check_memory() -> CheckLevels:
         'A four node cluster seems to work well on a machine with 9 GB '
         'of memory available to Docker.'
     ).format(memory=docker_memory / 1024 / 1024 / 1024)
-    mac_message = (
-        '\n'
-        'To dedicate more memory to Docker for Mac, go to '
-        'Docker > Preferences > Advanced.'
-    )
     if docker_for_mac:
+        mac_message = (
+            '\n'
+            'To dedicate more memory to Docker for Mac, go to '
+            'Docker > Preferences > Advanced.'
+        )
         message += mac_message
 
     info(message=message)
@@ -440,7 +440,7 @@ def _check_mount_var() -> CheckLevels:
             ).format(source=source)
 
             operating_system_info = client.info()['OperatingSystem']
-            boot2docker = bool('Boot2Docker' in operating_system_info)
+            boot2docker = 'Boot2Docker' in operating_system_info
             if boot2docker:
                 message += (
                     '\n'

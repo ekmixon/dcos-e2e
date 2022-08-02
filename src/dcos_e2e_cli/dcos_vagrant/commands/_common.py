@@ -112,9 +112,7 @@ def _ip_from_vm_name(vm_name: str) -> Optional[IPv4Address]:
     property_result = vertigo_py.execute(args=args)  # type: ignore
 
     results = yaml.load(property_result, Loader=yaml.FullLoader)
-    if results == 'No value set!':
-        return None
-    return IPv4Address(results['Value'])
+    return None if results == 'No value set!' else IPv4Address(results['Value'])
 
 
 def existing_cluster_ids() -> Set[str]:
@@ -215,7 +213,7 @@ class ClusterVMs(ClusterRepresentation):
         # different node types.
         # see https://jira.d2iq.com/browse/DCOS_OSS-3851.
         vm_names = self._vm_names()
-        return set(name for name in vm_names if '-master-' in name)
+        return {name for name in vm_names if '-master-' in name}
 
     @property
     def agents(self) -> Set[str]:
@@ -223,10 +221,11 @@ class ClusterVMs(ClusterRepresentation):
         VM names which represent agent nodes.
         """
         vm_names = self._vm_names()
-        return set(
-            name for name in vm_names
+        return {
+            name
+            for name in vm_names
             if '-agent-' in name and '-public-agent-' not in name
-        )
+        }
 
     @property
     def public_agents(self) -> Set[str]:
@@ -234,7 +233,7 @@ class ClusterVMs(ClusterRepresentation):
         VM names which represent public agent nodes.
         """
         vm_names = self._vm_names()
-        return set(name for name in vm_names if '-public-agent-' in name)
+        return {name for name in vm_names if '-public-agent-' in name}
 
     @property
     def _workspace_dir(self) -> Path:
@@ -291,14 +290,12 @@ class ClusterVMs(ClusterRepresentation):
         # We want to avoid that warning for users of other backends who do not
         # have the Vagrant executable.
         import vagrant
-        vagrant_client = vagrant.Vagrant(
+        return vagrant.Vagrant(
             root=str(vagrant_root),
             env=vagrant_env,
             quiet_stdout=False,
             quiet_stderr=True,
         )
-
-        return vagrant_client
 
     @property
     def base_config(self) -> Dict[str, Any]:

@@ -147,7 +147,7 @@ class Node:
         Compare a ``Node`` object against another one based on its attributes,
         namely the ``public_ip_address`` and ``private_ip_address``.
         """
-        return bool(hash(self) == hash(other))
+        return hash(self) == hash(other)
 
     def __hash__(self) -> int:
         """
@@ -846,7 +846,7 @@ def _prepare_installer(
         serve_dir_path=serve_dir_path,
     )
     extra_config = {'bootstrap_url': bootstrap_url}
-    dcos_config = {**dcos_config, **extra_config}
+    dcos_config |= extra_config
     config_yaml = yaml.dump(data=dcos_config)
     config_file_path = tempdir / 'config.yaml'
     Path(config_file_path).write_text(data=config_yaml)

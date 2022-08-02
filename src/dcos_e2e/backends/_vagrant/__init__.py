@@ -121,9 +121,9 @@ class VagrantCluster(ClusterManager):
             cluster_backend: Details of the specific Docker backend to use.
         """
         cluster_id = 'dcos-e2e-{random}'.format(random=uuid.uuid4())
-        self._master_prefix = cluster_id + '-master-'
-        self._agent_prefix = cluster_id + '-agent-'
-        self._public_agent_prefix = cluster_id + '-public-agent-'
+        self._master_prefix = f'{cluster_id}-master-'
+        self._agent_prefix = f'{cluster_id}-agent-'
+        self._public_agent_prefix = f'{cluster_id}-public-agent-'
 
         # We work in a new directory.
         # This helps running tests in parallel without conflicts and it
@@ -141,10 +141,7 @@ class VagrantCluster(ClusterManager):
             (agents, self._agent_prefix),
             (public_agents, self._public_agent_prefix),
         ):
-            for vm_number in range(nodes):
-                name = prefix + str(vm_number)
-                vm_names.append(name)
-
+            vm_names.extend(prefix + str(vm_number) for vm_number in range(nodes))
         vagrant_env = {
             'HOME': os.environ['HOME'],
             'PATH': os.environ['PATH'],

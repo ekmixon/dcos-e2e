@@ -25,7 +25,7 @@ def node_transport_option(command: Callable[..., None]) -> Callable[..., None]:
         if transports[transport] == backend_default
     ]
 
-    function = click.option(
+    return click.option(
         '--transport',
         type=click.Choice(sorted(transports.keys())),
         callback=lambda ctx, param, value: transports[value],
@@ -42,15 +42,14 @@ def node_transport_option(command: Callable[..., None]) -> Callable[..., None]:
             'When using a TTY, different transports may use different line '
             'endings.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)
 
 
 def wait_for_dcos_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     An option decorator for waiting for DC/OS to be up.
     """
-    function = click.option(
+    return click.option(
         '--wait-for-dcos',
         is_flag=True,
         help=(
@@ -62,5 +61,4 @@ def wait_for_dcos_option(command: Callable[..., None]) -> Callable[..., None]:
             'If the chosen transport is "docker-exec", this will skip HTTP '
             'checks and so the cluster may not be fully ready.'
         ),
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

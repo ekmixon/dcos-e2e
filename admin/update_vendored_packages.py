@@ -97,7 +97,7 @@ def _get_requirements() -> List[_Requirement]:
         git_reference='8550cf77f0f8e9878ad4d6ec9980f675b656d966',
     )
 
-    requirements = [
+    return [
         dcos_installer_tools,
         dcos_launch,
         test_utils,
@@ -107,16 +107,15 @@ def _get_requirements() -> List[_Requirement]:
         vertigo_cli,
     ]
 
-    return requirements
-
 
 def _remove_existing_files(requirements: List[_Requirement]) -> None:
     """
     Remove existing files in vendored target directories.
     """
-    target_directories = set(
+    target_directories = {
         requirement.target_directory for requirement in requirements
-    )
+    }
+
 
     repo_files = ls_files(repo='.')
     for target_directory in target_directories:
@@ -135,9 +134,10 @@ def _vendor_requirements(requirements: List[_Requirement]) -> None:
     """
     Clone vendored requirements.
     """
-    target_directories = set(
+    target_directories = {
         requirement.target_directory for requirement in requirements
-    )
+    }
+
 
     for target_directory in target_directories:
         target_directory.mkdir(exist_ok=True)
@@ -194,9 +194,10 @@ def _remove_untracked_files(requirements: List[_Requirement]) -> None:
     """
     Remove files downloaded by pip which are not tracked by git.
     """
-    target_directories = set(
+    target_directories = {
         requirement.target_directory for requirement in requirements
-    )
+    }
+
     repo_files = ls_files(repo='.')
     for target_directory in target_directories:
         git_paths = [

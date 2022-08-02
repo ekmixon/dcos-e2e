@@ -76,7 +76,7 @@ def check_vagrant_plugins_installed() -> CheckLevels:
 
     client = vagrant.Vagrant()
     plugin_list = client.plugin_list()
-    if 'vagrant-vbguest' in set(plugin.name for plugin in plugin_list):
+    if 'vagrant-vbguest' in {plugin.name for plugin in plugin_list}:
         return CheckLevels.NONE
 
     message = (
@@ -101,7 +101,7 @@ def check_vagrant_plugin_versions() -> CheckLevels:
     client = vagrant.Vagrant()
     plugin_list = client.plugin_list()
     name = 'vagrant-vbguest'
-    (plugin, ) = set(plugin for plugin in plugin_list if plugin.name == name)
+    (plugin, ) = {plugin for plugin in plugin_list if plugin.name == name}
     version_info = VersionInfo.parse(plugin.version)
     minimum_version = VersionInfo(0, 17, 2)
     # We require a minimum version to work around

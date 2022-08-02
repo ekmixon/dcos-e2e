@@ -39,9 +39,9 @@ def show_cluster_details(
 
     cluster = cluster_representation.cluster
     dcos_variant = get_cluster_variant(cluster=cluster)
-    variant_name = str(dcos_variant if dcos_variant else None)
+    variant_name = str(dcos_variant or None)
     master = next(iter(cluster.masters))
-    web_ui = 'http://' + str(master.public_ip_address)
+    web_ui = f'http://{str(master.public_ip_address)}'
 
     data = {
         'Cluster ID': cluster_id,

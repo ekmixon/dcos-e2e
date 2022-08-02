@@ -157,7 +157,7 @@ def start_dcos_container(
         storage_driver=docker_storage_driver,
         docker_version=docker_version,
     )
-    docker_service_dst = '/lib/systemd/system/' + docker_service_name
+    docker_service_dst = f'/lib/systemd/system/{docker_service_name}'
     echo_docker = [
         'echo',
         '-e',

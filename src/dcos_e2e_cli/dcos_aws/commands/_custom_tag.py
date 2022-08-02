@@ -15,10 +15,6 @@ def _validate_tags(
     """
     Turn tag strings into a Dict.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     tags = {}  # type: Dict[str, str]
     for tag_definition in value:
         parts = tag_definition.split(':')
@@ -45,7 +41,7 @@ def custom_tag_option(command: Callable[..., None]) -> Callable[..., None]:
     """
     Option to choose the DC/OS variant for installation.
     """
-    function = click.option(
+    return click.option(
         '--custom-tag',
         type=str,
         callback=_validate_tags,
@@ -54,5 +50,4 @@ def custom_tag_option(command: Callable[..., None]) -> Callable[..., None]:
             '"<TAG_KEY>:<TAG_VALUE>".'
         ),
         multiple=True,
-    )(command)  # type: Callable[..., None]
-    return function
+    )(command)

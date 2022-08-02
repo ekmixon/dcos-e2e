@@ -17,10 +17,6 @@ def validate_path_pair(
     Validate a pair of paths expected to be in the format:
     /absolute/local/path:/remote/path.
     """
-    # We "use" variables to satisfy linting tools.
-    for _ in (ctx, param):
-        pass
-
     result = []  # type: List[Tuple[Path, Path]]
 
     if value is None:

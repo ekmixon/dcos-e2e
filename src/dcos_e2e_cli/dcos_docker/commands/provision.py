@@ -120,7 +120,7 @@ def provision(
     )
 
     # This is useful for some people to identify containers.
-    container_name_prefix = Docker().container_name_prefix + '-' + cluster_id
+    container_name_prefix = f'{Docker().container_name_prefix}-{cluster_id}'
 
     cluster_backend = Docker(
         container_name_prefix=container_name_prefix,

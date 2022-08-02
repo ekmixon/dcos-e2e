@@ -126,5 +126,4 @@ def get_doctor_message(doctor_command_name: str) -> str:
     Args:
         doctor_command_name: A command which will give troubleshooting help.
     """
-    message = 'Try "' + doctor_command_name + '" for troubleshooting help.'
-    return message
+    return 'Try "' + doctor_command_name + '" for troubleshooting help.'
